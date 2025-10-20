@@ -1,0 +1,10 @@
+packages:
+  - 'apps/*'
+
+# Optional: Configure shared dependencies hoisting
+# shamefully-hoist: true
+
+# Build dependencies that need to be built from source
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - '@swc/core'
