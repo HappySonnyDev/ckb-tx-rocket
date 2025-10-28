@@ -1,6 +1,11 @@
-import { Scene } from 'phaser';
-import { EventBus } from '../EventBus';
-import { CKBChainVizService, Block } from '../../services/CKBChainVizService';
+import { Scene } from "phaser";
+import { EventBus } from "../EventBus";
+import { CKBChainVizService, Block } from "../../services/CKBChainVizService";
+import { createRoot, Root } from "react-dom/client";
+import { createElement } from "react";
+import { NetworkSelector } from "../../components/NetworkSelector";
+import { AboutUs } from "../../components/AboutUs";
+import { FeedbackButton } from "../../components/FeedbackButton";
 
 export class Game extends Scene {
     private skyBackgroundCenter!: Phaser.GameObjects.TileSprite;
@@ -12,6 +17,7 @@ export class Game extends Scene {
     private grassBackgroundRight!: Phaser.GameObjects.TileSprite;
 
     private roadPath!: Phaser.GameObjects.Image;
+    private mempoolEntrance!: Phaser.GameObjects.Image;
 
     private grassBorderTop!: Phaser.GameObjects.TileSprite;
     private grassBorderLeft!: Phaser.GameObjects.TileSprite;
@@ -39,9 +45,24 @@ export class Game extends Scene {
     private metricsText!: Phaser.GameObjects.Text;
     private transactionInfoText!: Phaser.GameObjects.Text;
     private connectionStatusText!: Phaser.GameObjects.Text;
+    private meseum!: Phaser.GameObjects.Image;
+    private cafe!: Phaser.GameObjects.Image;
+    private cake!: Phaser.GameObjects.Image;
+    private networkSelector!: HTMLElement;
+    private networkSelectorRoot!: Root;
+    private aboutUs!: HTMLElement;
+    private aboutUsRoot!: Root;
+    private feedbackButton!: HTMLElement;
+    private feedbackButtonRoot!: Root;
+    private tizi!: Phaser.GameObjects.Image;
+    private platform_testnet!: Phaser.GameObjects.Image;
+    private rocket!: Phaser.GameObjects.Image;
+    private pow!: Phaser.GameObjects.Image;
+    private king_testnet!: Phaser.GameObjects.Image;
+    private king_next_testnet!: Phaser.GameObjects.Image;
 
     constructor() {
-        super('Game');
+        super("Game");
         this.chainVizService = new CKBChainVizService();
     }
 
@@ -49,51 +70,247 @@ export class Game extends Scene {
      * Preloads all game assets including backgrounds, roads, and UI elements
      */
     preload(): void {
-        this.load.setPath('assets');
+        this.load.setPath("assets");
 
-        this.load.image('sky', 'sky.png');
-        this.load.image('lane', 'lane.png');
-        this.load.image('grass', 'grass.png');
-        this.load.image('lane-grass-top', 'lane-grass-top.png');
-        this.load.image('lane-grass-left', 'lane-grass-left.png');
-        this.load.image('lane-grass-right', 'lane-grass-right.png');
-        this.load.image('lane-grass-bottom', 'lane-grass-left-bottom.png');
-        this.load.image('gate', 'gate.png');
-        this.load.image('fence-left', 'fence-left.png');
-        this.load.image('fence-right', 'fence-right.png');
-        this.load.image('grass-left-bottom', 'grass-left-bottom.png');
-        this.load.image('grass-right-bottom', 'grass-right-bottom.png');
+        this.load.image("sky", "sky.png");
+        this.load.image("lane", "lane.png");
+        this.load.image("grass", "grass.png");
+        this.load.image("lane-grass-top", "lane-grass-top.png");
+        this.load.image("lane-grass-left", "lane-grass-left.png");
+        this.load.image("lane-grass-right", "lane-grass-right.png");
+        this.load.image("lane-grass-bottom", "lane-grass-left-bottom.png");
+        this.load.image("gate", "gate.png");
+        this.load.image("fence-left", "fence-left.png");
+        this.load.image("fence-right", "fence-right.png");
+        this.load.image("grass-left-bottom", "grass-left-bottom.png");
+        this.load.image("grass-right-bottom", "grass-right-bottom.png");
+        this.load.image("mempool", "mempool.png");
+        this.load.image("cafe", "cafe.png");
+        this.load.image("cake", "cake.png");
+        this.load.image("meseum", "meseum.png");
+        this.load.image("king_testnet", "king_testnet.png");
+        this.load.image("platform_testnet", "platform_testnet.png");
+        this.load.image("pow_testnet", "pow_testnet.png");
+        this.load.image("rocket_testnet", "rocket_testnet.png");
+        this.load.image("tizi_testnet", "tizi_testnet.png");
+        this.load.image("king_next_testnet", "king_next_testnet.png");
     }
 
     /**
      * Creates the game scene with backgrounds, road, and chain data overlays
      */
     create(): void {
-        this.cameras.main.setBackgroundColor('#E2C0A0');
-        
+        this.cameras.main.setBackgroundColor("#E2C0A0");
+
         const screenWidth = this.scale.width;
         const screenCenterX = screenWidth / 2;
 
-        this.mainGameAreaLeftBound = screenCenterX - this.MAIN_GAME_AREA_WIDTH / 2;
-        this.mainGameAreaRightBound = screenCenterX + this.MAIN_GAME_AREA_WIDTH / 2;
+        this.mainGameAreaLeftBound =
+            screenCenterX - this.MAIN_GAME_AREA_WIDTH / 2;
+        this.mainGameAreaRightBound =
+            screenCenterX + this.MAIN_GAME_AREA_WIDTH / 2;
 
         this.renderSkyBackground();
         this.renderGrassBackground();
 
-        this.roadPath = this.add.image(screenCenterX, 543, 'lane');
-        this.roadPath.setOrigin(0.5, 1);
+        this.renderMempool();
+        this.renderToolTip();
+        this.roadPath = this.add.image(357, 370, "lane");
+        this.roadPath.setOrigin(0, 0);
         this.roadPath.setDisplaySize(823, 176);
 
         this.renderRoadGrassBorders();
         this.renderGate();
         this.renderGrassBottomBorders();
+        this.renderRocket();
 
-        this.createChainDataOverlays();
-        this.initializeChainConnection();
+        this.createNetworkSelector();
+        this.createFeedbackButton();
+        this.createAboutUs();
 
-        this.scale.on('resize', this.handleScreenResize, this);
+        // Listen to canvas clicks to close dropdowns
+        this.input.on('pointerdown', () => {
+            EventBus.emit('canvas-clicked');
+        });
 
-        EventBus.emit('current-scene-ready', this);
+        // this.createChainDataOverlays();
+        // this.initializeChainConnection();
+
+        this.scale.on("resize", this.handleScreenResize, this);
+
+        EventBus.emit("current-scene-ready", this);
+    }
+
+    private renderRocket(): void {
+        const screenHight = this.scale.height;
+        const grassBottomEdge = 264 + 279 - 75 - 14;
+
+        if (this.tizi) this.tizi.destroy();
+
+        this.tizi = this.add.image(0, grassBottomEdge, "tizi_testnet");
+        this.tizi.setDisplaySize(154, 286);
+        this.tizi.setOrigin(0, 1);
+
+        if (this.platform_testnet) this.platform_testnet.destroy();
+        this.platform_testnet = this.add.image(
+            94,
+            grassBottomEdge,
+            "platform_testnet",
+        );
+        this.platform_testnet.setDisplaySize(232, 94);
+        this.platform_testnet.setOrigin(0, 1);
+
+        if (this.rocket) this.rocket.destroy();
+        this.rocket = this.add.image(
+            153,
+            264 + 279 - 75 - 59,
+            "rocket_testnet",
+        );
+        this.rocket.setDisplaySize(116, 332);
+        this.rocket.setOrigin(0, 1);
+
+        if (this.pow) this.pow.destroy();
+        this.pow = this.add.image(96, 264 + 279 - 75 - 202, "pow_testnet");
+        this.pow.setDisplaySize(78, 145);
+        this.pow.setOrigin(0, 1);
+
+        if (this.king_testnet) this.king_testnet.destroy();
+        this.king_testnet = this.add.image(
+            15,
+            264 + 279 - 75 - 261,
+            "king_testnet",
+        );
+        this.king_testnet.setDisplaySize(80, 77);
+        this.king_testnet.setOrigin(0, 1);
+
+        if (this.king_next_testnet) this.king_next_testnet.destroy();
+        this.king_next_testnet = this.add.image(1102, 627, "king_next_testnet");
+        this.king_next_testnet.setDisplaySize(236, 133);
+        this.king_next_testnet.setOrigin(0, 1);
+    }
+
+    /**
+     * Creates a network selector dropdown in the top-left corner
+     */
+    /**
+     * Creates a network selector dropdown using React Portal
+     * This approach provides better maintainability and component reusability
+     */
+    private createNetworkSelector(): void {
+        // Create container for React component
+        const container = document.createElement('div');
+        container.id = 'network-selector-container';
+        container.style.cssText = `
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            z-index: 1000;
+        `;
+        document.body.appendChild(container);
+
+        // Create React root and render NetworkSelector component
+        this.networkSelectorRoot = createRoot(container);
+        this.networkSelectorRoot.render(
+            createElement(NetworkSelector, {
+                defaultNetwork: 'Mainnet',
+                onNetworkChange: (network: string) => {
+                    this.handleNetworkChange(network);
+                }
+            })
+        );
+
+        // Store reference for cleanup
+        this.networkSelector = container;
+    }
+
+    /**
+     * Creates a Feedback button to the left of About Us
+     */
+    private createFeedbackButton(): void {
+        // Create container for React component
+        const container = document.createElement('div');
+        container.id = 'feedback-button-container';
+        container.style.cssText = `
+            position: absolute;
+            top: 10px;
+            right: 70px;
+            z-index: 1000;
+        `;
+        document.body.appendChild(container);
+
+        // Create React root and render FeedbackButton component
+        this.feedbackButtonRoot = createRoot(container);
+        this.feedbackButtonRoot.render(
+            createElement(FeedbackButton, {
+                onClick: () => {
+                    this.handleFeedbackClick();
+                }
+            })
+        );
+
+        // Store reference for cleanup
+        this.feedbackButton = container;
+    }
+
+    /**
+     * Handles Feedback button click
+     */
+    private handleFeedbackClick(): void {
+        console.log('Feedback button clicked');
+        
+        // Emit event for other parts of the app to handle
+        EventBus.emit('feedback-clicked');
+
+        // TODO: Implement feedback form or dialog
+        // You can open a modal, redirect to feedback page, etc.
+    }
+
+    /**
+     * Creates an About Us menu in the top-right corner
+     */
+    private createAboutUs(): void {
+        const screenWidth = this.scale.width;
+        
+        // Create container for React component
+        const container = document.createElement('div');
+        container.id = 'about-us-container';
+        container.style.cssText = `
+            position: absolute;
+            top: 14px;
+            right: 20px;
+            z-index: 1000;
+        `;
+        document.body.appendChild(container);
+
+        // Create React root and render AboutUs component
+        this.aboutUsRoot = createRoot(container);
+        this.aboutUsRoot.render(
+            createElement(AboutUs, {
+                onMenuItemClick: (item: 'about' | 'tour') => {
+                    this.handleAboutUsMenuClick(item);
+                }
+            })
+        );
+
+        // Store reference for cleanup
+        this.aboutUs = container;
+    }
+
+    /**
+     * Handles About Us menu item clicks
+     */
+    private handleAboutUsMenuClick(item: 'about' | 'tour'): void {
+        console.log(`About Us menu clicked: ${item}`);
+        
+        // Emit event for other parts of the app to handle
+        EventBus.emit('about-menu-clicked', item);
+
+        // TODO: Implement actual menu actions
+        if (item === 'about') {
+            // Show about dialog or navigate to about page
+        } else if (item === 'tour') {
+            // Start tutorial/tour
+        }
     }
 
     /**
@@ -102,7 +319,7 @@ export class Game extends Scene {
     private renderSkyBackground(): void {
         const screenWidth = this.scale.width;
         const screenCenterX = screenWidth / 2;
-        const SKY_HEIGHT = 527;
+        const SKY_HEIGHT = 280;
 
         if (this.skyBackgroundCenter) this.skyBackgroundCenter.destroy();
         if (this.skyBackgroundLeft) this.skyBackgroundLeft.destroy();
@@ -111,35 +328,60 @@ export class Game extends Scene {
         this.skyBackgroundCenter = this.add.tileSprite(
             screenCenterX,
             0,
-            this.MAIN_GAME_AREA_WIDTH,
+            // this.MAIN_GAME_AREA_WIDTH,
+            screenWidth,
             SKY_HEIGHT,
-            'sky',
+            "sky",
         );
         this.skyBackgroundCenter.setOrigin(0.5, 0);
+    }
 
-        if (this.mainGameAreaLeftBound > 0) {
-            const leftExtensionWidth = this.mainGameAreaLeftBound;
-            this.skyBackgroundLeft = this.add.tileSprite(
-                leftExtensionWidth / 2,
-                0,
-                leftExtensionWidth,
-                SKY_HEIGHT,
-                'sky',
-            );
-            this.skyBackgroundLeft.setOrigin(0.5, 0);
-        }
+    private renderMempool() {
+        const screenHight = this.scale.height;
+        const MEMPOOL_X_POSITION = 0; // 距离左边缘的位置
+        const topHeight = 266 + 266;
+        // const topHeight = 488
+        const bottomHeight = screenHight - topHeight;
+        // 计算 mempool  在垂直居中的 Y 坐标
 
-        const rightExtensionWidth = screenWidth - this.mainGameAreaRightBound;
-        if (rightExtensionWidth > 0) {
-            this.skyBackgroundRight = this.add.tileSprite(
-                this.mainGameAreaRightBound + rightExtensionWidth / 2,
-                0,
-                rightExtensionWidth,
-                SKY_HEIGHT,
-                'sky',
-            );
-            this.skyBackgroundRight.setOrigin(0.5, 0);
-        }
+        if (this.mempoolEntrance) this.mempoolEntrance.destroy();
+
+        // 创建 mempool entrance 图片,位于道路左侧,垂直居中
+        this.mempoolEntrance = this.add.image(
+            MEMPOOL_X_POSITION,
+            topHeight + bottomHeight / 2,
+            "mempool",
+        );
+        this.mempoolEntrance.setDisplaySize(64, 494);
+        // 设置锚点为中心,使图片以中心点定位
+        this.mempoolEntrance.setOrigin(0, 0.5);
+    }
+    private renderToolTip() {
+        const screenWidth = this.scale.width;
+        const screenCenterX = screenWidth / 2;
+        // const ROAD_WIDTH = 823;
+        const roadRightEdge = 798;
+        const roadBottomEdge = 340;
+        const padding = 32;
+        if (this.meseum) this.meseum.destroy();
+        if (this.cafe) this.cafe.destroy();
+        this.meseum = this.add.image(roadRightEdge, roadBottomEdge, "meseum");
+        this.meseum.setOrigin(0, 1);
+        this.meseum.setDisplaySize(228, 247);
+        this.cafe = this.add.image(
+            roadRightEdge + 228 + padding,
+            roadBottomEdge,
+            "cafe",
+        );
+        this.cafe.setOrigin(0, 1);
+        this.cafe.setDisplaySize(160, 172);
+        this.cake = this.add.image(
+            roadRightEdge + 228 + padding + 160 + padding,
+            roadBottomEdge,
+            "cake",
+        );
+        this.cake.setOrigin(0, 1);
+        this.cake.setDisplaySize(170, 172);
     }
 
     /**
@@ -157,36 +399,12 @@ export class Game extends Scene {
 
         this.grassBackgroundCenter = this.add.tileSprite(
             screenCenterX,
-            GRASS_Y_POSITION,
-            this.MAIN_GAME_AREA_WIDTH,
-            GRASS_HEIGHT,
-            'grass',
+            264,
+            screenWidth,
+            283,
+            "grass",
         );
         this.grassBackgroundCenter.setOrigin(0.5, 0);
-
-        if (this.mainGameAreaLeftBound > 0) {
-            const leftExtensionWidth = this.mainGameAreaLeftBound;
-            this.grassBackgroundLeft = this.add.tileSprite(
-                leftExtensionWidth / 2,
-                GRASS_Y_POSITION,
-                leftExtensionWidth,
-                GRASS_HEIGHT,
-                'grass',
-            );
-            this.grassBackgroundLeft.setOrigin(0.5, 0);
-        }
-
-        const rightExtensionWidth = screenWidth - this.mainGameAreaRightBound;
-        if (rightExtensionWidth > 0) {
-            this.grassBackgroundRight = this.add.tileSprite(
-                this.mainGameAreaRightBound + rightExtensionWidth / 2,
-                GRASS_Y_POSITION,
-                rightExtensionWidth,
-                GRASS_HEIGHT,
-                'grass',
-            );
-            this.grassBackgroundRight.setOrigin(0.5, 0);
-        }
     }
 
     /**
@@ -194,12 +412,7 @@ export class Game extends Scene {
      */
     private renderRoadGrassBorders(): void {
         const screenWidth = this.scale.width;
-        const screenCenterX = screenWidth / 2;
         const ROAD_WIDTH = 823;
-        const ROAD_HEIGHT = 176;
-        const roadLeftEdge = screenCenterX - ROAD_WIDTH / 2;
-        const roadRightEdge = screenCenterX + ROAD_WIDTH / 2;
-        const roadTopEdge = 543 - ROAD_HEIGHT;
 
         if (this.grassBorderTop) this.grassBorderTop.destroy();
         if (this.grassBorderLeft) this.grassBorderLeft.destroy();
@@ -207,40 +420,40 @@ export class Game extends Scene {
         if (this.grassBorderBottom) this.grassBorderBottom.destroy();
 
         this.grassBorderTop = this.add.tileSprite(
-            screenCenterX,
-            roadTopEdge - 1,
+            357,
+            365,
             ROAD_WIDTH,
             12,
-            'lane-grass-top',
+            "lane-grass-top",
         );
-        this.grassBorderTop.setOrigin(0.5, 0);
+        this.grassBorderTop.setOrigin(0, 0);
 
         this.grassBorderLeft = this.add.tileSprite(
-            roadLeftEdge + 1,
-            roadTopEdge,
+            355,
+            372,
             9,
-            ROAD_HEIGHT / 2,
-            'lane-grass-left',
+            85,
+            "lane-grass-left",
         );
-        this.grassBorderLeft.setOrigin(1, 0);
+        this.grassBorderLeft.setOrigin(0, 0);
 
         this.grassBorderRight = this.add.tileSprite(
-            roadRightEdge - 7,
-            roadTopEdge,
-            7,
-            ROAD_HEIGHT,
-            'lane-grass-right',
+            1175,
+            372,
+            9,
+            85,
+            "lane-grass-right",
         );
         this.grassBorderRight.setOrigin(0, 0);
 
         this.grassBorderBottom = this.add.tileSprite(
-            roadLeftEdge + 368 / 2,
-            roadTopEdge + ROAD_HEIGHT / 2,
+            355,
+            448,
             368,
             10,
-            'lane-grass-bottom',
+            "lane-grass-bottom",
         );
-        this.grassBorderBottom.setOrigin(0.5, 0.5);
+        this.grassBorderBottom.setOrigin(0, 0);
     }
 
     /**
@@ -257,72 +470,61 @@ export class Game extends Scene {
         if (this.fenceLeft) this.fenceLeft.destroy();
         if (this.fenceRight) this.fenceRight.destroy();
 
-        this.gate = this.add.image(roadRightEdge + 20, roadBottomEdge, 'gate');
-        this.gate.setOrigin(1, 1);
+        this.gate = this.add.image(690, roadBottomEdge, "gate");
+        this.gate.setOrigin(0, 1);
 
-        const gateLeftEdge = this.gate.x - this.gate.width;
-        const fenceWidth = gateLeftEdge;
+        const fenceWidth = 690;
         const fenceHeight = 75;
         const grassBottomEdge = 264 + 279;
 
         this.fenceLeft = this.add.tileSprite(
-            gateLeftEdge / 2,
-            grassBottomEdge,
+            0,
+            roadBottomEdge,
             fenceWidth,
             fenceHeight,
-            'fence-left',
+            "fence-left",
         );
-        this.fenceLeft.setOrigin(0.5, 1);
+        this.fenceLeft.setOrigin(0, 1);
 
         const gateRightEdge = this.gate.x;
         const fenceRightWidth = screenWidth - gateRightEdge;
 
         this.fenceRight = this.add.tileSprite(
-            gateRightEdge + fenceRightWidth / 2,
-            grassBottomEdge,
-            fenceRightWidth,
+            1200,
+            roadBottomEdge,
+            258,
             fenceHeight,
-            'fence-right',
+            "fence-right",
         );
-        this.fenceRight.setOrigin(0.5, 1);
+        this.fenceRight.setOrigin(0, 1);
     }
 
     /**
      * Renders grass borders under the fence areas
      */
     private renderGrassBottomBorders(): void {
-        const screenWidth = this.scale.width;
-        const ROAD_WIDTH = 823;
-        const screenCenterX = screenWidth / 2;
-        const roadRightEdge = screenCenterX + ROAD_WIDTH / 2;
-        const grassBottomEdge = 264 + 279;
-        const grassBottomHeight = 10;
+        const grassBottomHeight = 12;
 
         if (this.grassBottomBorderLeft) this.grassBottomBorderLeft.destroy();
         if (this.grassBottomBorderRight) this.grassBottomBorderRight.destroy();
 
-        const gateRightEdge = roadRightEdge + 20;
-        const gateLeftEdge = gateRightEdge - 487;
-        const fenceLeftWidth = gateLeftEdge;
-        const fenceRightWidth = screenWidth - gateRightEdge;
-
         this.grassBottomBorderLeft = this.add.tileSprite(
-            gateLeftEdge / 2,
-            grassBottomEdge,
-            fenceLeftWidth,
+            0,
+            546,
+            736,
             grassBottomHeight,
-            'grass-left-bottom',
+            "grass-left-bottom",
         );
-        this.grassBottomBorderLeft.setOrigin(0.5, 1);
+        this.grassBottomBorderLeft.setOrigin(0, 1);
 
         this.grassBottomBorderRight = this.add.tileSprite(
-            gateRightEdge + fenceRightWidth / 2,
-            grassBottomEdge,
-            fenceRightWidth,
+            1170,
+            546,
+            258,
             grassBottomHeight,
-            'grass-right-bottom',
+            "grass-right-bottom",
         );
-        this.grassBottomBorderRight.setOrigin(0.5, 1);
+        this.grassBottomBorderRight.setOrigin(0, 1);
     }
 
     /**
@@ -332,8 +534,10 @@ export class Game extends Scene {
         const screenWidth = this.scale.width;
         const screenCenterX = screenWidth / 2;
 
-        this.mainGameAreaLeftBound = screenCenterX - this.MAIN_GAME_AREA_WIDTH / 2;
-        this.mainGameAreaRightBound = screenCenterX + this.MAIN_GAME_AREA_WIDTH / 2;
+        this.mainGameAreaLeftBound =
+            screenCenterX - this.MAIN_GAME_AREA_WIDTH / 2;
+        this.mainGameAreaRightBound =
+            screenCenterX + this.MAIN_GAME_AREA_WIDTH / 2;
 
         this.renderSkyBackground();
         this.renderGrassBackground();
@@ -344,7 +548,7 @@ export class Game extends Scene {
         this.renderRoadGrassBorders();
         this.renderGate();
         this.renderGrassBottomBorders();
-        
+
         if (this.rightOverlayContainer) {
             const overlayWidth = 280;
             const padding = 20;
@@ -356,12 +560,41 @@ export class Game extends Scene {
      * Gets the boundaries of the main game area
      * @returns Object containing left bound, right bound, and total width
      */
-    public getMainGameAreaBounds(): { left: number; right: number; width: number } {
+    public getMainGameAreaBounds(): {
+        left: number;
+        right: number;
+        width: number;
+    } {
         return {
             left: this.mainGameAreaLeftBound,
             right: this.mainGameAreaRightBound,
             width: this.MAIN_GAME_AREA_WIDTH,
         };
+    }
+
+    /**
+     * Handles network selection change
+     * @param network - Selected network (mainnet or testnet)
+     */
+    private handleNetworkChange(network: string): void {
+        console.log(`Network changed to: ${network}`);
+
+        // Add visual feedback
+        this.tweens.add({
+            targets: this.networkSelector,
+            alpha: 0.5,
+            duration: 100,
+            yoyo: true,
+            ease: "Power2",
+        });
+
+        // Emit event for other parts of the app to handle
+        EventBus.emit("network-changed", network);
+
+        // TODO: Implement network switch logic
+        // - Reconnect to different CKB node
+        // - Clear current blockchain data
+        // - Reload data from new network
     }
 
     /**
@@ -372,40 +605,85 @@ export class Game extends Scene {
         const overlayHeight = 180;
         const padding = 20;
         const textStyle = {
-            fontSize: '12px',
-            color: '#ffffff',
-            fontFamily: 'monospace',
+            fontSize: "12px",
+            color: "#ffffff",
+            fontFamily: "monospace",
             lineSpacing: 2,
         };
 
         this.leftOverlayContainer = this.add.container(padding, padding);
-        
-        this.leftOverlayBackground = this.add.rectangle(0, 0, overlayWidth, overlayHeight, 0x000000, 0.7);
+
+        this.leftOverlayBackground = this.add.rectangle(
+            0,
+            0,
+            overlayWidth,
+            overlayHeight,
+            0x000000,
+            0.7,
+        );
         this.leftOverlayBackground.setOrigin(0, 0);
         this.leftOverlayBackground.setStrokeStyle(2, 0x00ff00, 0.8);
-        
-        this.blockInfoText = this.add.text(10, 10, 'Block: Loading...', textStyle);
-        this.metricsText = this.add.text(10, 80, 'Metrics: Loading...', textStyle);
-        
-        this.leftOverlayContainer.add([this.leftOverlayBackground, this.blockInfoText, this.metricsText]);
-        
+
+        this.blockInfoText = this.add.text(
+            10,
+            10,
+            "Block: Loading...",
+            textStyle,
+        );
+        this.metricsText = this.add.text(
+            10,
+            80,
+            "Metrics: Loading...",
+            textStyle,
+        );
+
+        this.leftOverlayContainer.add([
+            this.leftOverlayBackground,
+            this.blockInfoText,
+            this.metricsText,
+        ]);
+
         const screenWidth = this.scale.width;
-        this.rightOverlayContainer = this.add.container(screenWidth - overlayWidth - padding, padding);
-        
-        this.rightOverlayBackground = this.add.rectangle(0, 0, overlayWidth, overlayHeight, 0x000000, 0.7);
+        this.rightOverlayContainer = this.add.container(
+            screenWidth - overlayWidth - padding,
+            padding,
+        );
+
+        this.rightOverlayBackground = this.add.rectangle(
+            0,
+            0,
+            overlayWidth,
+            overlayHeight,
+            0x000000,
+            0.7,
+        );
         this.rightOverlayBackground.setOrigin(0, 0);
         this.rightOverlayBackground.setStrokeStyle(2, 0x00ff00, 0.8);
-        
-        this.transactionInfoText = this.add.text(10, 10, 'Transactions: Loading...', textStyle);
-        
-        this.connectionStatusText = this.add.text(10, 120, 'Status: Disconnected', {
-            ...textStyle,
-            fontSize: '12px',
-            color: '#ff0000',
-        });
-        
-        this.rightOverlayContainer.add([this.rightOverlayBackground, this.transactionInfoText, this.connectionStatusText]);
-        
+
+        this.transactionInfoText = this.add.text(
+            10,
+            10,
+            "Transactions: Loading...",
+            textStyle,
+        );
+
+        this.connectionStatusText = this.add.text(
+            10,
+            120,
+            "Status: Disconnected",
+            {
+                ...textStyle,
+                fontSize: "12px",
+                color: "#ff0000",
+            },
+        );
+
+        this.rightOverlayContainer.add([
+            this.rightOverlayBackground,
+            this.transactionInfoText,
+            this.connectionStatusText,
+        ]);
+
         this.leftOverlayContainer.setDepth(1000);
         this.rightOverlayContainer.setDepth(1000);
     }
@@ -416,15 +694,15 @@ export class Game extends Scene {
     private async initializeChainConnection(): Promise<void> {
         try {
             await this.chainVizService.connect();
-            
-            this.connectionStatusText.setText('Status: Connected');
-            this.connectionStatusText.setColor('#00ff00');
-            
-            this.chainVizService.subscribe('chain');
-            this.chainVizService.subscribe('transactions');
-            
+
+            this.connectionStatusText.setText("Status: Connected");
+            this.connectionStatusText.setColor("#00ff00");
+
+            this.chainVizService.subscribe("chain");
+            this.chainVizService.subscribe("transactions");
+
             this.setupChainEventListeners();
-            
+
             const snapshot = await this.chainVizService.getSnapshot();
             if (snapshot.latestBlock) {
                 this.updateBlockInfo(snapshot.latestBlock);
@@ -436,9 +714,9 @@ export class Game extends Scene {
                 });
             }
         } catch (error) {
-            console.error('Failed to connect to ChainViz service:', error);
-            this.connectionStatusText.setText('Status: Connection Failed');
-            this.connectionStatusText.setColor('#ff0000');
+            console.error("Failed to connect to ChainViz service:", error);
+            this.connectionStatusText.setText("Status: Connection Failed");
+            this.connectionStatusText.setColor("#ff0000");
         }
     }
 
@@ -446,39 +724,55 @@ export class Game extends Scene {
      * Sets up event listeners for real-time blockchain data updates
      */
     private setupChainEventListeners(): void {
-        EventBus.on('block-finalized', (block: Block) => {
+        EventBus.on("block-finalized", (block: Block) => {
             this.updateBlockInfo(block);
         });
 
         let pendingCount = 0;
         let proposedCount = 0;
         let confirmedCount = 0;
-        
-        EventBus.on('transaction-pending', () => {
+
+        EventBus.on("transaction-pending", () => {
             pendingCount++;
-            this.updateTransactionInfo({ pending: pendingCount, proposed: proposedCount, confirmed: confirmedCount });
-        });
-        
-        EventBus.on('transaction-proposed', () => {
-            if (pendingCount > 0) pendingCount--;
-            proposedCount++;
-            this.updateTransactionInfo({ pending: pendingCount, proposed: proposedCount, confirmed: confirmedCount });
-        });
-        
-        EventBus.on('transaction-confirmed', () => {
-            if (proposedCount > 0) proposedCount--;
-            confirmedCount++;
-            this.updateTransactionInfo({ pending: pendingCount, proposed: proposedCount, confirmed: confirmedCount });
-            
-            this.time.delayedCall(5000, () => {
-                confirmedCount = 0;
-                this.updateTransactionInfo({ pending: pendingCount, proposed: proposedCount, confirmed: confirmedCount });
+            this.updateTransactionInfo({
+                pending: pendingCount,
+                proposed: proposedCount,
+                confirmed: confirmedCount,
             });
         });
-        
-        EventBus.on('chainviz-disconnected', () => {
-            this.connectionStatusText.setText('Status: Disconnected');
-            this.connectionStatusText.setColor('#ff0000');
+
+        EventBus.on("transaction-proposed", () => {
+            if (pendingCount > 0) pendingCount--;
+            proposedCount++;
+            this.updateTransactionInfo({
+                pending: pendingCount,
+                proposed: proposedCount,
+                confirmed: confirmedCount,
+            });
+        });
+
+        EventBus.on("transaction-confirmed", () => {
+            if (proposedCount > 0) proposedCount--;
+            confirmedCount++;
+            this.updateTransactionInfo({
+                pending: pendingCount,
+                proposed: proposedCount,
+                confirmed: confirmedCount,
+            });
+
+            this.time.delayedCall(5000, () => {
+                confirmedCount = 0;
+                this.updateTransactionInfo({
+                    pending: pendingCount,
+                    proposed: proposedCount,
+                    confirmed: confirmedCount,
+                });
+            });
+        });
+
+        EventBus.on("chainviz-disconnected", () => {
+            this.connectionStatusText.setText("Status: Disconnected");
+            this.connectionStatusText.setColor("#ff0000");
         });
     }
 
@@ -487,31 +781,33 @@ export class Game extends Scene {
      * @param block - Block data to display
      */
     private updateBlockInfo(block: Block): void {
-        const blockTime = new Date(parseInt(block.timestamp)).toLocaleTimeString();
+        const blockTime = new Date(
+            parseInt(block.timestamp),
+        ).toLocaleTimeString();
         const blockInfo = [
             `Block: #${block.blockNumber}`,
             `Hash: ${block.blockHash.slice(0, 14)}...`,
             `Time: ${blockTime}`,
             `Txs: ${block.transactionCount}`,
-        ].join('\n');
-        
+        ].join("\n");
+
         this.blockInfoText.setText(blockInfo);
-        
+
         const metricsInfo = [
             `Miner: ${block.miner.slice(0, 14)}...`,
             `Reward: ${block.reward}`,
             `Proposals: ${block.proposalsCount || 0}`,
             `Uncles: ${block.unclesCount || 0}`,
-        ].join('\n');
-        
+        ].join("\n");
+
         this.metricsText.setText(metricsInfo);
-        
+
         this.tweens.add({
             targets: this.leftOverlayBackground,
             alpha: 1,
             duration: 200,
             yoyo: true,
-            ease: 'Power2',
+            ease: "Power2",
         });
     }
 
@@ -519,23 +815,27 @@ export class Game extends Scene {
      * Updates the transaction counts display in the right overlay
      * @param counts - Object containing pending, proposed, and confirmed transaction counts
      */
-    private updateTransactionInfo(counts: { pending?: number; proposed?: number; confirmed?: number }): void {
+    private updateTransactionInfo(counts: {
+        pending?: number;
+        proposed?: number;
+        confirmed?: number;
+    }): void {
         const txInfo = [
-            'Transactions:',
+            "Transactions:",
             `  Pending: ${counts.pending || 0}`,
             `  Proposed: ${counts.proposed || 0}`,
             `  Confirmed: ${counts.confirmed || 0}`,
-        ].join('\n');
-        
+        ].join("\n");
+
         this.transactionInfoText.setText(txInfo);
-        
+
         if (counts.confirmed && counts.confirmed > 0) {
             this.tweens.add({
                 targets: this.rightOverlayBackground,
                 alpha: 1,
                 duration: 200,
                 yoyo: true,
-                ease: 'Power2',
+                ease: "Power2",
             });
         }
     }
@@ -545,15 +845,39 @@ export class Game extends Scene {
      */
     shutdown(): void {
         if (this.chainVizService.connected) {
-            this.chainVizService.unsubscribe('chain');
-            this.chainVizService.unsubscribe('transactions');
+            this.chainVizService.unsubscribe("chain");
+            this.chainVizService.unsubscribe("transactions");
             this.chainVizService.disconnect();
         }
-        
-        EventBus.off('block-finalized');
-        EventBus.off('transaction-pending');
-        EventBus.off('transaction-proposed');
-        EventBus.off('transaction-confirmed');
-        EventBus.off('chainviz-disconnected');
+
+        EventBus.off("block-finalized");
+        EventBus.off("transaction-pending");
+        EventBus.off("transaction-proposed");
+        EventBus.off("transaction-confirmed");
+        EventBus.off("chainviz-disconnected");
+
+        // Clean up network selector
+        if (this.networkSelectorRoot) {
+            this.networkSelectorRoot.unmount();
+        }
+        if (this.networkSelector && this.networkSelector.parentNode) {
+            this.networkSelector.parentNode.removeChild(this.networkSelector);
+        }
+
+        // Clean up about us menu
+        if (this.aboutUsRoot) {
+            this.aboutUsRoot.unmount();
+        }
+        if (this.aboutUs && this.aboutUs.parentNode) {
+            this.aboutUs.parentNode.removeChild(this.aboutUs);
+        }
+
+        // Clean up feedback button
+        if (this.feedbackButtonRoot) {
+            this.feedbackButtonRoot.unmount();
+        }
+        if (this.feedbackButton && this.feedbackButton.parentNode) {
+            this.feedbackButton.parentNode.removeChild(this.feedbackButton);
+        }
     }
 }

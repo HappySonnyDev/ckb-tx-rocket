@@ -1,0 +1,94 @@
+.network-selector-wrapper {
+  width: 110px;
+  font-family: system-ui;
+}
+
+.network-main-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #FBFAEE;
+  padding: 9px 16px;
+  border: 2px solid #805CAD;
+  cursor: pointer;
+}
+
+.network-selected-text {
+  color: #805CAD;
+  font-size: 14px;
+  flex: 1;
+}
+
+.network-arrow-icon {
+  width: 12px;
+  height: 12px;
+  object-fit: fill;
+  transition: transform 0.3s ease;
+}
+
+.network-arrow-icon.open {
+  transform: rotate(180deg);
+}
+
+.network-options-container {
+  background-color: #FBFAEE;
+  border: 2px solid #805CAD;
+  border-top: none;
+  margin-top: -2px;
+  max-height: 500px;
+  opacity: 1;
+  /* transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out; */
+  overflow: hidden;
+}
+
+.network-options-container:not(.open) {
+  max-height: 0;
+  opacity: 0;
+  border: none;
+  padding: 0;
+}
+
+.network-option-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 16px;
+  cursor: pointer;
+}
+
+.network-option-item:hover {
+  /* background-color: #F0E8F8; */
+}
+
+.network-option-text {
+  color: #805CAD;
+  font-size: 14px;
+  flex: 1;
+}
+
+.network-check-icon {
+  width: 12px;
+  height: 12px;
+  object-fit: fill;
+}
+
+.network-check-icon.hidden {
+  display: none;
+}
+
+.network-bottom-bar {
+  background-color: #D8BBF0;
+  height: 3px;
+  border: 2px solid #805CAD;
+  border-top: none;
+  transition: opacity 0.3s ease-in-out;
+
+}
+
+.network-bottom-bar.collapsed {
+  /* opacity: 0;
+  height: 3px;
+  border: none; */
+    margin-top: 2px;
+
+}

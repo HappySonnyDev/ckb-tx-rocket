@@ -9,7 +9,7 @@ import { chainVizConfig } from './config/chainviz.config';
 function App() {
   const phaserRef = useRef<IRefPhaserGame | null>(null);
   const chainViz = useCKBChainViz();
-  const [showControls, setShowControls] = useState(true);
+  const [showControls, setShowControls] = useState(false);
 
   useEffect(() => {
     if (chainVizConfig.autoConnect) {
@@ -21,7 +21,7 @@ function App() {
     <div id="app">
       <PhaserGame ref={phaserRef} />
 
-      {showControls && (
+      {/* {showControls && (
         <div
           style={{
             position: 'absolute',
@@ -147,7 +147,7 @@ function App() {
         >
           ChainViz
         </button>
-      )}
+      )} */}
     </div>
   );
 }

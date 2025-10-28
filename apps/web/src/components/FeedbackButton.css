@@ -1,0 +1,39 @@
+.feedback-button-wrapper {
+  font-family: system-ui;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+}
+
+.feedback-button {
+  display: flex;
+  align-items: center;
+  background-color: #FBFAEE;
+  padding: 7px 16px;
+  gap: 8px;
+  border: 2px solid #805CAD;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.feedback-button:hover {
+  /* background-color: #F0E8F8; */
+}
+
+.feedback-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: fill;
+}
+
+.feedback-text {
+  color: #805CAD;
+  font-size: 14px;
+}
+
+.feedback-bottom-bar {
+  background-color: #D8BBF0;
+  height: 6px;
+  border: 2px solid #805CAD;
+  border-top: none;
+}
