@@ -1,0 +1,25 @@
+.tooltip-wrapper {
+  position: absolute;
+  z-index: 2000;
+  font-family: 'Body1', system-ui;
+}
+
+.tooltip-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background-color: #FBFAEE;
+  padding: 16px 16px 16px 16px;
+  border: 2px solid #805CAD;
+  max-width: 228px;
+  box-sizing: border-box;
+}
+
+.tooltip-text {
+  color: #805CAD;
+  font-size: 10px;
+  line-height:14px;
+  letter-spacing: -0.01em;
+  font-weight: bolder;
+  white-space: pre-line;
+}

@@ -6,6 +6,7 @@ import { createElement } from "react";
 import { NetworkSelector } from "../../components/NetworkSelector";
 import { AboutUs } from "../../components/AboutUs";
 import { FeedbackButton } from "../../components/FeedbackButton";
+import { Tooltip, TooltipContent } from "../../components/Tooltip";
 
 export class Game extends Scene {
     private skyBackgroundCenter!: Phaser.GameObjects.TileSprite;
@@ -25,6 +26,8 @@ export class Game extends Scene {
     private grassBorderBottom!: Phaser.GameObjects.TileSprite;
 
     private gate!: Phaser.GameObjects.Image;
+    private gateText1!: Phaser.GameObjects.Text;
+    private gateText2!: Phaser.GameObjects.Text;
 
     private fenceLeft!: Phaser.GameObjects.TileSprite;
     private fenceRight!: Phaser.GameObjects.TileSprite;
@@ -54,6 +57,21 @@ export class Game extends Scene {
     private aboutUsRoot!: Root;
     private feedbackButton!: HTMLElement;
     private feedbackButtonRoot!: Root;
+    private tooltip!: HTMLElement;
+    private tooltipRoot!: Root;
+    private currentTooltip: {
+        visible: boolean;
+        content: TooltipContent;
+        x: number;
+        y: number;
+        width?: number | string;
+        height?: number | string;
+    } = {
+        visible: false,
+        content: { text: "" },
+        x: 0,
+        y: 0,
+    };
     private tizi!: Phaser.GameObjects.Image;
     private platform_testnet!: Phaser.GameObjects.Image;
     private rocket!: Phaser.GameObjects.Image;
@@ -127,10 +145,14 @@ export class Game extends Scene {
         this.createNetworkSelector();
         this.createFeedbackButton();
         this.createAboutUs();
+        this.createTooltip();
+
+        // Setup click handlers for interactive objects
+        this.setupInteractiveObjects();
 
         // Listen to canvas clicks to close dropdowns
-        this.input.on('pointerdown', () => {
-            EventBus.emit('canvas-clicked');
+        this.input.on("pointerdown", () => {
+            EventBus.emit("canvas-clicked");
         });
 
         // this.createChainDataOverlays();
@@ -198,8 +220,8 @@ export class Game extends Scene {
      */
     private createNetworkSelector(): void {
         // Create container for React component
-        const container = document.createElement('div');
-        container.id = 'network-selector-container';
+        const container = document.createElement("div");
+        container.id = "network-selector-container";
         container.style.cssText = `
             position: absolute;
             top: 10px;
@@ -212,11 +234,11 @@ export class Game extends Scene {
         this.networkSelectorRoot = createRoot(container);
         this.networkSelectorRoot.render(
             createElement(NetworkSelector, {
-                defaultNetwork: 'Mainnet',
+                defaultNetwork: "Mainnet",
                 onNetworkChange: (network: string) => {
                     this.handleNetworkChange(network);
-                }
-            })
+                },
+            }),
         );
 
         // Store reference for cleanup
@@ -228,8 +250,8 @@ export class Game extends Scene {
      */
     private createFeedbackButton(): void {
         // Create container for React component
-        const container = document.createElement('div');
-        container.id = 'feedback-button-container';
+        const container = document.createElement("div");
+        container.id = "feedback-button-container";
         container.style.cssText = `
             position: absolute;
             top: 10px;
@@ -244,8 +266,8 @@ export class Game extends Scene {
             createElement(FeedbackButton, {
                 onClick: () => {
                     this.handleFeedbackClick();
-                }
-            })
+                },
+            }),
         );
 
         // Store reference for cleanup
@@ -256,10 +278,10 @@ export class Game extends Scene {
      * Handles Feedback button click
      */
     private handleFeedbackClick(): void {
-        console.log('Feedback button clicked');
-        
+        console.log("Feedback button clicked");
+
         // Emit event for other parts of the app to handle
-        EventBus.emit('feedback-clicked');
+        EventBus.emit("feedback-clicked");
 
         // TODO: Implement feedback form or dialog
         // You can open a modal, redirect to feedback page, etc.
@@ -270,10 +292,10 @@ export class Game extends Scene {
      */
     private createAboutUs(): void {
         const screenWidth = this.scale.width;
-        
+
         // Create container for React component
-        const container = document.createElement('div');
-        container.id = 'about-us-container';
+        const container = document.createElement("div");
+        container.id = "about-us-container";
         container.style.cssText = `
             position: absolute;
             top: 14px;
@@ -286,10 +308,10 @@ export class Game extends Scene {
         this.aboutUsRoot = createRoot(container);
         this.aboutUsRoot.render(
             createElement(AboutUs, {
-                onMenuItemClick: (item: 'about' | 'tour') => {
+                onMenuItemClick: (item: "about" | "tour") => {
                     this.handleAboutUsMenuClick(item);
-                }
-            })
+                },
+            }),
         );
 
         // Store reference for cleanup
@@ -299,17 +321,154 @@ export class Game extends Scene {
     /**
      * Handles About Us menu item clicks
      */
-    private handleAboutUsMenuClick(item: 'about' | 'tour'): void {
+    private handleAboutUsMenuClick(item: "about" | "tour"): void {
         console.log(`About Us menu clicked: ${item}`);
-        
+
         // Emit event for other parts of the app to handle
-        EventBus.emit('about-menu-clicked', item);
+        EventBus.emit("about-menu-clicked", item);
 
         // TODO: Implement actual menu actions
-        if (item === 'about') {
+        if (item === "about") {
             // Show about dialog or navigate to about page
-        } else if (item === 'tour') {
+        } else if (item === "tour") {
             // Start tutorial/tour
+        }
+    }
+
+    /**
+     * Creates a Tooltip component
+     */
+    private createTooltip(): void {
+        // Create container for React component
+        const container = document.createElement("div");
+        container.id = "tooltip-container";
+        document.body.appendChild(container);
+
+        // Create React root and render Tooltip component
+        this.tooltipRoot = createRoot(container);
+        this.updateTooltip();
+
+        // Store reference for cleanup
+        this.tooltip = container;
+    }
+
+    /**
+     * Updates the tooltip display
+     */
+    private updateTooltip(): void {
+        if (this.tooltipRoot) {
+            this.tooltipRoot.render(
+                createElement(Tooltip, {
+                    visible: this.currentTooltip.visible,
+                    content: this.currentTooltip.content,
+                    x: this.currentTooltip.x,
+                    y: this.currentTooltip.y,
+                    width: this.currentTooltip.width,
+                    height: this.currentTooltip.height,
+                    onClose: () => this.hideTooltip(),
+                }),
+            );
+        }
+    }
+
+    /**
+     * Shows a tooltip at specified position with content
+     */
+    private showTooltip(
+        content: TooltipContent,
+        x: number,
+        y: number,
+        width?: number | string,
+        height?: number | string,
+    ): void {
+        this.currentTooltip = { visible: true, content, x, y, width, height };
+        this.updateTooltip();
+    }
+
+    /**
+     * Hides the current tooltip
+     */
+    private hideTooltip(): void {
+        this.currentTooltip.visible = false;
+        this.updateTooltip();
+    }
+
+    /**
+     * Setup interactive objects (museum, cafe, etc.)
+     */
+    private setupInteractiveObjects(): void {
+        // Make museum interactive
+        if (this.meseum) {
+            this.meseum.setInteractive({ useHandCursor: true });
+            this.meseum.on("pointerdown", () => {
+                this.showTooltip(
+                    {
+                        text: "🚀 This museum opened its doors on Nov 16, 2019 — the day CKB Mainnet launched!",
+                        highlightText: "Nov 16, 2019",
+                        highlightColor: "#F2EC8A",
+                    },
+                    798, // x position
+                    100, // y position
+                    240, // width
+                    74, // height
+                );
+            });
+        }
+
+        // Make cafe interactive
+        if (this.cafe) {
+            this.cafe.setInteractive({ useHandCursor: true });
+            this.cafe.on("pointerdown", () => {
+                this.showTooltip(
+                    {
+                        text: `🍴 Welcome to Fork Café — where big upgrades are always on the menu!
+ 1st hardfork – Mirana
+ May 2021
+2nd hardfork – Pudge
+ May 2023
+3rd hardfork – Meepo
+ May 2025`,
+                        highlightText: ["Mirana", "Pudge", "Meepo"],
+                        highlightColor: "#F2EC8A",
+                    },
+                    1026 + 32, // x position (museum width + padding)
+                    100, // y position,
+                    193,
+                    186,
+                );
+            });
+        }
+
+        // Make cake interactive
+        if (this.cake) {
+            this.cake.setInteractive({ useHandCursor: true });
+            this.cake.on("pointerdown", () => {
+                this.showTooltip(
+                    {
+                        text: "🎂 We slice the cake every 4 years!\nThe last halving was on Nov 19, 2023, and the next baking is expected in Nov 2027.\nBlock rewards get cut in half — fewer coins, same sweet taste! 🍰",
+                        highlightText: ["Nov 19, 2023", "Nov 2027"],
+                        highlightColor: "#F2EC8A",
+                    },
+                    1026 + 32 + 160 + 32, // x position (museum + cafe + 2 paddings)
+                    100, // y position
+                );
+            });
+        }
+
+        // Make king_next interactive
+        if (this.king_next_testnet) {
+            this.king_next_testnet.setInteractive({ useHandCursor: true });
+            this.king_next_testnet.on("pointerdown", () => {
+                this.showTooltip(
+                    {
+                        text: "🐙 Furry? Fluffy? Fabulous? I don't care.  If your fee's not fire, you're not getting picked up — at least not first.\n Avg. Fee Rate 1.3 shannons/KB\nFee Range 0.8–2.5 shannons/KB\n(You know what to do)",
+                    },
+                    1002, // x position
+                    500, // y position
+                    300,
+                    148,
+                );
+            });
         }
     }
 
@@ -460,22 +619,45 @@ export class Game extends Scene {
      * Renders the gate and fence elements around the game area
      */
     private renderGate(): void {
-        const screenWidth = this.scale.width;
-        const screenCenterX = screenWidth / 2;
-        const ROAD_WIDTH = 823;
-        const roadRightEdge = screenCenterX + ROAD_WIDTH / 2;
         const roadBottomEdge = 543;
 
         if (this.gate) this.gate.destroy();
+        if (this.gateText1) this.gateText1.destroy();
+        if (this.gateText2) this.gateText2.destroy();
         if (this.fenceLeft) this.fenceLeft.destroy();
         if (this.fenceRight) this.fenceRight.destroy();
 
         this.gate = this.add.image(690, roadBottomEdge, "gate");
         this.gate.setOrigin(0, 1);
 
+        // 添加门框上的文字
+        const gateTextStyle = {
+            fontSize: '18px',
+            fontFamily: 'monospace',
+            color: '#5C4033',
+            fontStyle: 'bold'
+        };
+
+        // 第一行文字: PROPOSED QUEUE
+        this.gateText1 = this.add.text(
+            942.5, // x position (gate x + offset)
+            360,
+            '↑ PROPOSED QUEUE:93',
+            gateTextStyle
+        );
+        this.gateText1.setOrigin(0.5, 0.5);
+
+        // 第二行文字: PENDING QUEUE
+        this.gateText2 = this.add.text(
+            942.5, // x position
+            385, // y position
+            '↓ PENDING QUEUE:1,023',
+            gateTextStyle
+        );
+        this.gateText2.setOrigin(0.5, 0.5);
+
         const fenceWidth = 690;
         const fenceHeight = 75;
-        const grassBottomEdge = 264 + 279;
 
         this.fenceLeft = this.add.tileSprite(
             0,
@@ -485,9 +667,6 @@ export class Game extends Scene {
             "fence-left",
         );
         this.fenceLeft.setOrigin(0, 1);
-
-        const gateRightEdge = this.gate.x;
-        const fenceRightWidth = screenWidth - gateRightEdge;
 
         this.fenceRight = this.add.tileSprite(
             1200,
@@ -878,6 +1057,14 @@ export class Game extends Scene {
         }
         if (this.feedbackButton && this.feedbackButton.parentNode) {
             this.feedbackButton.parentNode.removeChild(this.feedbackButton);
+        }
+
+        // Clean up tooltip
+        if (this.tooltipRoot) {
+            this.tooltipRoot.unmount();
+        }
+        if (this.tooltip && this.tooltip.parentNode) {
+            this.tooltip.parentNode.removeChild(this.tooltip);
         }
     }
 }
