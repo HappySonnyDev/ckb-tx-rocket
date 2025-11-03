@@ -84,14 +84,15 @@ export class Game extends Scene {
         sprite: Phaser.GameObjects.Image;
         type: 'rabbit' | 'pig' | 'turtle';
         queuePosition: { x: number; y: number };
+        randomOffset: { x: number; y: number }; // 固定的随机偏移，不会改变
     }> = [];
     private readonly MEMPOOL_START_X = 80; // Mempool 出口位置（Mempool右侧）
-    private readonly MEMPOOL_Y = 600; // Mempool 中心 Y 坐标（道路中心线）
-    private readonly QUEUE_START_X = 870; // 排队区域起始 X（Gate下方左侧）
+    private readonly MEMPOOL_Y = 800; // Mempool 中心 Y 坐标（道路中心线）
+    private readonly QUEUE_START_X = 930; // 排队区域起始 X（Gate下方左侧）
     private readonly QUEUE_BASE_Y = 580; // 排队基准 Y 坐标（道路中心偏下）
     private readonly ANIMAL_SIZE = 40; // 动物图片尺寸
     private animationLoopCount = 0; // 动画循环计数器
-    private readonly MAX_ANIMATION_LOOPS = 5; // 最大循环次数
+    private readonly MAX_ANIMATION_LOOPS = 20; // 最大循环次数
 
     constructor() {
         super("Game");
@@ -1169,12 +1170,16 @@ export class Game extends Scene {
         // Flip horizontally to face right (头朝右)
         animal.setFlipX(true);
 
+        // Generate fixed random offset for this animal
+        const randomOffset = this.generateRandomOffset();
+        
         // Temporarily calculate a position as if the animal was already in queue
         // This is just for movement calculation, not affecting existing queue
         const tempQueue = [...this.animalQueue, {
             sprite: animal,
             type: type,
-            queuePosition: { x: 0, y: 0 }
+            queuePosition: { x: 0, y: 0 },
+            randomOffset: randomOffset
         }];
         
         // Sort temp queue by priority
@@ -1187,7 +1192,11 @@ export class Game extends Scene {
         
         // Find where this animal would be in the sorted queue
         const tempIndex = tempQueue.findIndex(a => a.sprite === animal);
-        const queuePosition = this.calculatePositionByIndex(tempIndex);
+        const basePosition = this.calculateBasePositionByIndex(tempIndex);
+        const queuePosition = {
+            x: basePosition.x + randomOffset.x,
+            y: basePosition.y + randomOffset.y
+        };
 
         // Calculate movement duration based on animal speed
         const speed = this.getAnimalSpeed(type);
@@ -1209,7 +1218,8 @@ export class Game extends Scene {
                 this.animalQueue.push({
                     sprite: animal,
                     type: type,
-                    queuePosition: queuePosition
+                    queuePosition: queuePosition,
+                    randomOffset: randomOffset
                 });
                 
                 // Sort queue by priority
@@ -1237,11 +1247,11 @@ export class Game extends Scene {
     }
 
     /**
-     * Calculates the queue position based on queue index
+     * Calculates the base queue position (without random offset) based on queue index
      * @param index - Index in the sorted queue
-     * @returns Position coordinates
+     * @returns Base position coordinates
      */
-    private calculatePositionByIndex(index: number): { x: number; y: number } {
+    private calculateBasePositionByIndex(index: number): { x: number; y: number } {
         // Base position
         const baseX = this.QUEUE_START_X;
         const baseY = this.QUEUE_BASE_Y;
@@ -1271,14 +1281,18 @@ export class Game extends Scene {
 
         return { x, y };
     }
-
+    
     /**
-     * Recalculates positions for all animals in the queue after sorting
+     * Generates a random offset for natural positioning
+     * @returns Random offset for x and y
      */
-    private recalculateAllPositions(): void {
-        this.animalQueue.forEach((animal, index) => {
-            animal.queuePosition = this.calculatePositionByIndex(index);
-        });
+    private generateRandomOffset(): { x: number; y: number } {
+        // 横向随机偏移 ±8px（增加横向波动，让三角形边缘更自然）
+        // 垂直随机偏移 ±6px
+        return {
+            x: (Math.random() - 0.5) * 16, // -8 到 +8
+            y: (Math.random() - 0.5) * 12  // -6 到 +6
+        };
     }
 
     /**
@@ -1299,38 +1313,38 @@ export class Game extends Scene {
     /**
      * Arranges animals in a single triangular formation
      * All animals mixed together, forming one large triangle
+     * Only moves animals whose index has changed
      */
     private arrangeQueueTriangle(): void {
-        const baseX = this.QUEUE_START_X;
-        const baseY = this.QUEUE_BASE_Y;
-        const rowSpacing = 28;  // 垂直间距
-        const colSpacing = 30;  // 横向间距
+        // Save old positions before rearranging
+        const oldPositions = new Map<Phaser.GameObjects.Image, { x: number; y: number }>();
+        this.animalQueue.forEach(animal => {
+            oldPositions.set(animal.sprite, { ...animal.queuePosition });
+        });
 
         // Arrange all animals in a single triangular formation
         this.animalQueue.forEach((animal, index) => {
-            // Calculate row number
-            let row = 0;
-            let countSoFar = 0;
-            while (countSoFar + row + 1 <= index) {
-                countSoFar += row + 1;
-                row++;
+            // Calculate base position using the index
+            const basePosition = this.calculateBasePositionByIndex(index);
+            
+            // Apply the animal's fixed random offset
+            const targetX = basePosition.x + animal.randomOffset.x;
+            const targetY = basePosition.y + animal.randomOffset.y;
+            
+            // Get old position
+            const oldPos = oldPositions.get(animal.sprite);
+            
+            // Only animate if position actually changed
+            if (!oldPos || Math.abs(oldPos.x - targetX) > 0.1 || Math.abs(oldPos.y - targetY) > 0.1) {
+                // Smooth transition to new position
+                this.tweens.add({
+                    targets: animal.sprite,
+                    x: targetX,
+                    y: targetY,
+                    duration: 300,
+                    ease: 'Power2'
+                });
             }
-            
-            // Column position within the row
-            const col = index - countSoFar;
-            
-            // Calculate position with triangular offset (centered)
-            const targetX = baseX + (col * colSpacing) - (row * colSpacing / 2);
-            const targetY = baseY + (row * rowSpacing);
-            
-            // Smooth transition to new position
-            this.tweens.add({
-                targets: animal.sprite,
-                x: targetX,
-                y: targetY,
-                duration: 300,
-                ease: 'Power2'
-            });
 
             // Update stored position
             animal.queuePosition = { x: targetX, y: targetY };
