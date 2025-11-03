@@ -1,0 +1,66 @@
+<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="18" y="43" width="8" height="1" fill="black"/>
+<rect x="16" y="42" width="2" height="1" fill="black"/>
+<rect x="26" y="42" width="2" height="1" fill="black"/>
+<rect x="28" y="41" width="2" height="1" fill="black"/>
+<rect x="30" y="40" width="1" height="1" fill="black"/>
+<rect x="31" y="39" width="1" height="1" fill="black"/>
+<rect x="31" y="24" width="1" height="1" fill="black"/>
+<rect x="30" y="23" width="1" height="1" fill="black"/>
+<rect x="28" y="22" width="2" height="1" fill="black"/>
+<rect x="26" y="12" width="1" height="1" fill="black"/>
+<rect x="27" y="13" width="1" height="1" fill="black"/>
+<rect x="28" y="14" width="1" height="1" fill="black"/>
+<rect x="29" y="15" width="1" height="7" fill="black"/>
+<rect x="32" y="37" width="1" height="2" fill="black"/>
+<rect x="32" y="25" width="1" height="2" fill="black"/>
+<rect x="33" y="27" width="1" height="10" fill="black"/>
+<rect width="2" height="1" transform="matrix(-1 0 0 1 16 41)" fill="black"/>
+<rect width="1" height="1" transform="matrix(-1 0 0 1 14 40)" fill="black"/>
+<rect width="1" height="1" transform="matrix(-1 0 0 1 13 39)" fill="black"/>
+<rect width="1" height="1" transform="matrix(-1 0 0 1 13 24)" fill="black"/>
+<rect width="1" height="1" transform="matrix(-1 0 0 1 14 23)" fill="black"/>
+<rect width="2" height="1" transform="matrix(-1 0 0 1 16 22)" fill="black"/>
+<rect width="1" height="1" transform="matrix(-1 0 0 1 18 12)" fill="black"/>
+<rect width="1" height="1" transform="matrix(-1 0 0 1 17 11)" fill="black"/>
+<rect width="1" height="1" transform="matrix(-1 0 0 1 14 1)" fill="black"/>
+<rect width="1" height="1" transform="matrix(-1 0 0 1 18 1)" fill="black"/>
+<rect width="1" height="1" transform="matrix(-1 0 0 1 19 2)" fill="black"/>
+<rect width="1" height="3" transform="matrix(-1 0 0 1 20 3)" fill="black"/>
+<rect width="3" height="1" transform="matrix(-1 0 0 1 17 0)" fill="black"/>
+<rect width="1" height="2" transform="matrix(-1 0 0 1 16 9)" fill="black"/>
+<rect width="1" height="2" transform="matrix(-1 0 0 1 15 7)" fill="black"/>
+<rect width="1" height="5" transform="matrix(-1 0 0 1 21 6)" fill="black"/>
+<rect width="1" height="3" transform="matrix(-1 0 0 1 14 4)" fill="black"/>
+<rect width="1" height="2" transform="matrix(-1 0 0 1 13 2)" fill="black"/>
+<rect x="27" y="11" width="1" height="1" fill="black"/>
+<rect x="30" y="1" width="1" height="1" fill="black"/>
+<rect x="26" y="1" width="1" height="1" fill="black"/>
+<rect x="25" y="2" width="1" height="1" fill="black"/>
+<rect x="24" y="3" width="1" height="3" fill="black"/>
+<rect x="27" width="3" height="1" fill="black"/>
+<rect x="28" y="9" width="1" height="2" fill="black"/>
+<rect x="29" y="7" width="1" height="2" fill="black"/>
+<rect x="23" y="6" width="1" height="5" fill="black"/>
+<rect x="30" y="4" width="1" height="3" fill="black"/>
+<rect x="31" y="2" width="1" height="2" fill="black"/>
+<rect width="8" height="1" transform="matrix(-1 0 0 1 26 11)" fill="black"/>
+<rect width="1" height="1" transform="matrix(-1 0 0 1 17 13)" fill="black"/>
+<rect width="1" height="1" transform="matrix(-1 0 0 1 16 14)" fill="black"/>
+<rect width="1" height="7" transform="matrix(-1 0 0 1 15 15)" fill="black"/>
+<rect width="1" height="2" transform="matrix(-1 0 0 1 12 37)" fill="black"/>
+<rect width="1" height="2" transform="matrix(-1 0 0 1 12 25)" fill="black"/>
+<rect width="1" height="10" transform="matrix(-1 0 0 1 11 27)" fill="black"/>
+<path d="M17 12H18V11H20V6H19V3H18V2H17V1H14V2H13V4H14V7H15V9H16V11H17V12Z" fill="#F8F0DC"/>
+<path d="M27 12H26V11H24V6H25V3H26V2H27V1H30V2H31V4H30V7H29V9H28V11H27V12Z" fill="#F8F0DC"/>
+<path d="M18 13V12H26V13H27V14H28V15H29V22H28V23H30V24H31V25H32V27H33V37H32V39H31V40H30V41H28V42H26V43H18V42H16V41H14V40H13V39H12V37H11V27H12V25H13V24H14V23H16V22H15V15H16V14H17V13H18Z" fill="#F8F0DC"/>
+<rect x="21" y="39" width="2" height="1" fill="black"/>
+<rect x="21" y="34" width="2" height="1" fill="black"/>
+<rect x="23" y="38" width="1" height="1" fill="black"/>
+<rect x="23" y="35" width="1" height="1" fill="black"/>
+<rect x="20" y="35" width="1" height="1" fill="black"/>
+<rect width="1" height="1" transform="matrix(-1 0 0 1 21 38)" fill="black"/>
+<rect x="24" y="36" width="1" height="2" fill="black"/>
+<rect width="1" height="2" transform="matrix(-1 0 0 1 20 36)" fill="black"/>
+<path d="M21 38V39H23V38H24V36H23V35H21V36H20V38H21Z" fill="#F8F0DC"/>
+</svg>

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const path = require('path');
 
 // 创建简单的SVG占位图片
 const createSVGPlaceholder = (width, height, text, bgColor) => {

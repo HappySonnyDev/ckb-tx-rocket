@@ -79,6 +79,20 @@ export class Game extends Scene {
     private king_testnet!: Phaser.GameObjects.Image;
     private king_next_testnet!: Phaser.GameObjects.Image;
 
+    // Animal animation system
+    private animalQueue: Array<{
+        sprite: Phaser.GameObjects.Image;
+        type: 'rabbit' | 'pig' | 'turtle';
+        queuePosition: { x: number; y: number };
+    }> = [];
+    private readonly MEMPOOL_START_X = 80; // Mempool 出口位置（Mempool右侧）
+    private readonly MEMPOOL_Y = 600; // Mempool 中心 Y 坐标（道路中心线）
+    private readonly QUEUE_START_X = 870; // 排队区域起始 X（Gate下方左侧）
+    private readonly QUEUE_BASE_Y = 580; // 排队基准 Y 坐标（道路中心偏下）
+    private readonly ANIMAL_SIZE = 40; // 动物图片尺寸
+    private animationLoopCount = 0; // 动画循环计数器
+    private readonly MAX_ANIMATION_LOOPS = 5; // 最大循环次数
+
     constructor() {
         super("Game");
         this.chainVizService = new CKBChainVizService();
@@ -112,6 +126,14 @@ export class Game extends Scene {
         this.load.image("rocket_testnet", "rocket_testnet.png");
         this.load.image("tizi_testnet", "tizi_testnet.png");
         this.load.image("king_next_testnet", "king_next_testnet.png");
+
+        // Load animal sprites for animation
+        this.load.svg("rabbit", "rabbit.svg");
+        this.load.svg("rabbit_b", "rabbit_b.svg");
+        this.load.svg("pig", "pig.svg");
+        this.load.svg("pig_b", "pig_b.svg");
+        this.load.svg("turtle", "turtle.svg");
+        this.load.svg("turtle_b", "turtle_b.svg");
     }
 
     /**
@@ -161,6 +183,9 @@ export class Game extends Scene {
         this.scale.on("resize", this.handleScreenResize, this);
 
         EventBus.emit("current-scene-ready", this);
+
+        // Start animal animation demonstration
+        this.startAnimalAnimation();
     }
 
     private renderRocket(): void {
@@ -1066,5 +1091,249 @@ export class Game extends Scene {
         if (this.tooltip && this.tooltip.parentNode) {
             this.tooltip.parentNode.removeChild(this.tooltip);
         }
+
+        // Clean up animals
+        this.animalQueue.forEach(animal => {
+            if (animal.sprite) {
+                animal.sprite.destroy();
+            }
+        });
+        this.animalQueue = [];
+    }
+
+    /**
+     * Starts the animal animation demonstration
+     * Animals move from Mempool to queue area in triangular formation
+     */
+    private startAnimalAnimation(): void {
+        // Check if we've reached the maximum number of loops
+        if (this.animationLoopCount >= this.MAX_ANIMATION_LOOPS) {
+            console.log('动画已完成 5 次循环，停止执行');
+            return;
+        }
+
+        // Increment loop counter
+        this.animationLoopCount++;
+        console.log(`开始第 ${this.animationLoopCount} 次动画循环`);
+
+        // Clear existing animals before starting new animation cycle
+        // this.clearAnimalQueue();
+        
+        // Spawn animals in sequence: rabbit -> pig -> turtle
+        const animalTypes: Array<'rabbit' | 'pig' | 'turtle'> = ['rabbit', 'pig', 'turtle'];
+        
+        animalTypes.forEach((type, index) => {
+            // Delay each animal spawn by 1 second
+            this.time.delayedCall(index * 1000, () => {
+                this.spawnAnimal(type);
+            });
+        });
+
+        // Schedule next loop only if we haven't reached the max
+        if (this.animationLoopCount < this.MAX_ANIMATION_LOOPS) {
+            this.time.delayedCall(1000, () => {
+                this.startAnimalAnimation();
+            });
+        } else {
+            console.log('已达到最大循环次数，动画将停止');
+        }
+    }
+
+    /**
+     * Clears all animals from the queue
+     */
+    private clearAnimalQueue(): void {
+        // Destroy all animal sprites
+        this.animalQueue.forEach(animal => {
+            if (animal.sprite) {
+                animal.sprite.destroy();
+            }
+        });
+        // Clear the queue array
+        this.animalQueue = [];
+    }
+
+    /**
+     * Spawns a single animal and animates it to queue position
+     * @param type - Type of animal to spawn (rabbit, pig, or turtle)
+     */
+    private spawnAnimal(type: 'rabbit' | 'pig' | 'turtle'): void {
+        // Create animal sprite at Mempool exit
+        const animal = this.add.image(
+            this.MEMPOOL_START_X,
+            this.MEMPOOL_Y,
+            type // Use running sprite
+        );
+        animal.setDisplaySize(this.ANIMAL_SIZE, this.ANIMAL_SIZE);
+        animal.setOrigin(0.5, 0.5);
+        // Flip horizontally to face right (头朝右)
+        animal.setFlipX(true);
+
+        // Temporarily calculate a position as if the animal was already in queue
+        // This is just for movement calculation, not affecting existing queue
+        const tempQueue = [...this.animalQueue, {
+            sprite: animal,
+            type: type,
+            queuePosition: { x: 0, y: 0 }
+        }];
+        
+        // Sort temp queue by priority
+        const priorityMap: Record<string, number> = {
+            'rabbit': 1,
+            'pig': 2,
+            'turtle': 3
+        };
+        tempQueue.sort((a, b) => priorityMap[a.type] - priorityMap[b.type]);
+        
+        // Find where this animal would be in the sorted queue
+        const tempIndex = tempQueue.findIndex(a => a.sprite === animal);
+        const queuePosition = this.calculatePositionByIndex(tempIndex);
+
+        // Calculate movement duration based on animal speed
+        const speed = this.getAnimalSpeed(type);
+        const distance = queuePosition.x - this.MEMPOOL_START_X;
+        const duration = (distance / speed) * 1000; // Convert to milliseconds
+
+        // Animate movement to queue position
+        this.tweens.add({
+            targets: animal,
+            x: queuePosition.x,
+            y: queuePosition.y,
+            duration: duration,
+            ease: 'Linear',
+            onComplete: () => {
+                // Switch to queue sprite (背身图片)
+                animal.setTexture(`${type}_b`);
+                
+                // Add to queue after arrival
+                this.animalQueue.push({
+                    sprite: animal,
+                    type: type,
+                    queuePosition: queuePosition
+                });
+                
+                // Sort queue by priority
+                this.sortQueueByPriority();
+                
+                // Rearrange all animals in triangular formation
+                this.arrangeQueueTriangle();
+            }
+        });
+    }
+
+    /**
+     * Sorts the animal queue by priority: rabbit > pig > turtle
+     */
+    private sortQueueByPriority(): void {
+        const priorityMap: Record<string, number> = {
+            'rabbit': 1,
+            'pig': 2,
+            'turtle': 3
+        };
+        
+        this.animalQueue.sort((a, b) => {
+            return priorityMap[a.type] - priorityMap[b.type];
+        });
+    }
+
+    /**
+     * Calculates the queue position based on queue index
+     * @param index - Index in the sorted queue
+     * @returns Position coordinates
+     */
+    private calculatePositionByIndex(index: number): { x: number; y: number } {
+        // Base position
+        const baseX = this.QUEUE_START_X;
+        const baseY = this.QUEUE_BASE_Y;
+        
+        // Calculate row number: find which row this animal belongs to
+        // Row 0: 1 animal (index 0)
+        // Row 1: 2 animals (index 1-2)
+        // Row 2: 3 animals (index 3-5)
+        // Row 3: 4 animals (index 6-9)
+        let row = 0;
+        let countSoFar = 0;
+        while (countSoFar + row + 1 <= index) {
+            countSoFar += row + 1;
+            row++;
+        }
+        
+        // Column position within the row
+        const col = index - countSoFar;
+        
+        // 更紧凑的间距，允许动物之间有重叠
+        const rowSpacing = 28;  // 垂直间距
+        const colSpacing = 30;  // 横向间距
+        
+        // Calculate position with triangular offset (centered)
+        const x = baseX + (col * colSpacing) - (row * colSpacing / 2);
+        const y = baseY + (row * rowSpacing);
+
+        return { x, y };
+    }
+
+    /**
+     * Recalculates positions for all animals in the queue after sorting
+     */
+    private recalculateAllPositions(): void {
+        this.animalQueue.forEach((animal, index) => {
+            animal.queuePosition = this.calculatePositionByIndex(index);
+        });
+    }
+
+    /**
+     * Gets the movement speed for each animal type
+     * Rabbit is fastest, turtle is slowest
+     * @param type - Animal type
+     * @returns Speed in pixels per second
+     */
+    private getAnimalSpeed(type: 'rabbit' | 'pig' | 'turtle'): number {
+        const speeds = {
+            rabbit: 400,  // Fastest (最快)
+            pig: 300,     // Medium (中速)
+            turtle: 200   // Slowest (最慢)
+        };
+        return speeds[type];
+    }
+
+    /**
+     * Arranges animals in a single triangular formation
+     * All animals mixed together, forming one large triangle
+     */
+    private arrangeQueueTriangle(): void {
+        const baseX = this.QUEUE_START_X;
+        const baseY = this.QUEUE_BASE_Y;
+        const rowSpacing = 28;  // 垂直间距
+        const colSpacing = 30;  // 横向间距
+
+        // Arrange all animals in a single triangular formation
+        this.animalQueue.forEach((animal, index) => {
+            // Calculate row number
+            let row = 0;
+            let countSoFar = 0;
+            while (countSoFar + row + 1 <= index) {
+                countSoFar += row + 1;
+                row++;
+            }
+            
+            // Column position within the row
+            const col = index - countSoFar;
+            
+            // Calculate position with triangular offset (centered)
+            const targetX = baseX + (col * colSpacing) - (row * colSpacing / 2);
+            const targetY = baseY + (row * rowSpacing);
+            
+            // Smooth transition to new position
+            this.tweens.add({
+                targets: animal.sprite,
+                x: targetX,
+                y: targetY,
+                duration: 300,
+                ease: 'Power2'
+            });
+
+            // Update stored position
+            animal.queuePosition = { x: targetX, y: targetY };
+        });
     }
 }
