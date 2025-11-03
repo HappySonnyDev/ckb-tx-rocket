@@ -86,13 +86,29 @@ export class Game extends Scene {
         queuePosition: { x: number; y: number };
         randomOffset: { x: number; y: number }; // 固定的随机偏移，不会改变
     }> = [];
+    
+    // Checkpoint queue (animals moving from proposed queue to checkpoint)
+    private checkpointQueue: Array<{
+        sprite: Phaser.GameObjects.Image;
+        type: 'rabbit' | 'pig' | 'turtle';
+        queuePosition: { x: number; y: number };
+        randomOffset: { x: number; y: number };
+    }> = [];
+    
     private readonly MEMPOOL_START_X = 80; // Mempool 出口位置（Mempool右侧）
     private readonly MEMPOOL_Y = 800; // Mempool 中心 Y 坐标（道路中心线）
     private readonly QUEUE_START_X = 930; // 排队区域起始 X（Gate下方左侧）
     private readonly QUEUE_BASE_Y = 580; // 排队基准 Y 坐标（道路中心偏下）
+    
+    // Checkpoint queue position (火箭右侧)
+    private readonly CHECKPOINT_START_X = 380; // Checkpoint队列起始 X（火箭右侧）
+    private readonly CHECKPOINT_BASE_Y = 410; // Checkpoint队列基准 Y
+    
     private readonly ANIMAL_SIZE = 40; // 动物图片尺寸
     private animationLoopCount = 0; // 动画循环计数器
     private readonly MAX_ANIMATION_LOOPS = 20; // 最大循环次数
+    private checkpointMoveCount = 0; // Checkpoint移动计数器
+    private readonly MAX_CHECKPOINT_MOVES = 8; // 最多移动8个动物到Checkpoint
 
     constructor() {
         super("Game");
@@ -187,6 +203,9 @@ export class Game extends Scene {
 
         // Start animal animation demonstration
         this.startAnimalAnimation();
+        
+        // Start moving animals to checkpoint (slower process)
+        this.startCheckpointAnimation();
     }
 
     private renderRocket(): void {
@@ -1100,6 +1119,14 @@ export class Game extends Scene {
             }
         });
         this.animalQueue = [];
+        
+        // Clean up checkpoint animals
+        this.checkpointQueue.forEach(animal => {
+            if (animal.sprite) {
+                animal.sprite.destroy();
+            }
+        });
+        this.checkpointQueue = [];
     }
 
     /**
@@ -1152,6 +1179,212 @@ export class Game extends Scene {
         });
         // Clear the queue array
         this.animalQueue = [];
+    }
+    
+    /**
+     * Starts the checkpoint animation - moves animals from proposed queue to checkpoint
+     * This runs slower than the main animation
+     */
+    private startCheckpointAnimation(): void {
+        // Check if we've reached the maximum moves
+        if (this.checkpointMoveCount >= this.MAX_CHECKPOINT_MOVES) {
+            console.log('Checkpoint队列已达到8个动物，停止移动');
+            return;
+        }
+        
+        // Wait for some animals to accumulate in the queue
+        this.time.delayedCall(3000, () => {
+            this.moveAnimalToCheckpoint();
+        });
+    }
+    
+    /**
+     * Moves a random animal from proposed queue to checkpoint queue
+     */
+    private moveAnimalToCheckpoint(): void {
+        // Check if there are animals in the queue
+        if (this.animalQueue.length === 0) {
+            console.log('Proposed队列为空，稍后再试');
+            // Try again later
+            this.time.delayedCall(2000, () => {
+                this.moveAnimalToCheckpoint();
+            });
+            return;
+        }
+        
+        // Randomly select an animal from the queue
+        const randomIndex = Phaser.Math.Between(0, this.animalQueue.length - 1);
+        const selectedAnimal = this.animalQueue[randomIndex];
+        
+        // Remove from proposed queue
+        this.animalQueue.splice(randomIndex, 1);
+        
+        // Increment checkpoint counter
+        this.checkpointMoveCount++;
+        
+        // Calculate checkpoint position
+        const checkpointPosition = this.calculateCheckpointPosition(selectedAnimal.type);
+        
+        // Get animal speed based on type
+        const speed = this.getAnimalSpeed(selectedAnimal.type);
+        
+        // Calculate intermediate position (move up first)
+        const upwardY = 400
+        const upDistance = Math.abs(selectedAnimal.sprite.y - upwardY);
+        const upDuration = (upDistance / speed) * 1000; // 使用动物自身的速度
+        
+        // Step 1: Move upward
+        this.tweens.add({
+            targets: selectedAnimal.sprite,
+            y: upwardY,
+            duration: upDuration,
+            ease: 'Linear',
+            onComplete: () => {
+                // Step 2: Move left and change sprite direction
+                // Switch to facing-left sprite (移除背身图片的_b后缀)
+                const baseTexture = selectedAnimal.type; // rabbit, pig, or turtle
+                selectedAnimal.sprite.setTexture(baseTexture);
+                // Face left (头朝左，不需要翻转，因为原始图片头就是朝左的)
+                selectedAnimal.sprite.setFlipX(false);
+                
+                const leftDistance = selectedAnimal.sprite.x - checkpointPosition.x;
+                const leftDuration = (leftDistance / speed) * 1000; // 使用动物自身的速度
+                
+                this.tweens.add({
+                    targets: selectedAnimal.sprite,
+                    x: checkpointPosition.x,
+                    y: checkpointPosition.y,
+                    duration: leftDuration,
+                    ease: 'Linear',
+                    onComplete: () => {
+                        // 到达Checkpoint后保持头朝左的姿态，不再切换图片
+                        
+                        // Add to checkpoint queue
+                        this.checkpointQueue.push({
+                            sprite: selectedAnimal.sprite,
+                            type: selectedAnimal.type,
+                            queuePosition: checkpointPosition,
+                            randomOffset: selectedAnimal.randomOffset
+                        });
+                        
+                        // Sort checkpoint queue by priority
+                        this.sortCheckpointQueue();
+                        
+                        // Rearrange checkpoint queue
+                        this.arrangeCheckpointQueue();
+                    }
+                });
+            }
+        });
+        
+        // Rearrange remaining animals in proposed queue
+        this.arrangeQueueTriangle();
+        
+        // Schedule next move if haven't reached max
+        if (this.checkpointMoveCount < this.MAX_CHECKPOINT_MOVES) {
+            // Slower interval: 4-6 seconds
+            const nextDelay = Phaser.Math.Between(4000, 6000);
+            this.time.delayedCall(nextDelay, () => {
+                this.moveAnimalToCheckpoint();
+            });
+        }
+    }
+    
+    /**
+     * Calculates checkpoint queue position for an animal
+     * Checkpoint queue: arranged in a rectangular formation
+     * Rabbit on left columns, pig in middle columns, turtle on right columns
+     */
+    private calculateCheckpointPosition(type: 'rabbit' | 'pig' | 'turtle'): { x: number; y: number } {
+        // Count animals of same type already in checkpoint
+        const sameTypeCount = this.checkpointQueue.filter(a => a.type === type).length;
+        
+        // Horizontal position based on type (column groups)
+        const typeOffset = {
+            'rabbit': 0,      // 最左侧列组
+            'pig': 80,        // 中间列组
+            'turtle': 160     // 右侧列组
+        };
+        
+        // Rectangular layout parameters
+        const colSpacing = 35;  // 列间距
+        const rowSpacing = 35;  // 行间距
+        const itemsPerRow = 3;  // 每行3个动物
+        
+        // Calculate row and column within the type group
+        const row = Math.floor(sameTypeCount / itemsPerRow);
+        const col = sameTypeCount % itemsPerRow;
+        
+        // Calculate position
+        const baseX = this.CHECKPOINT_START_X + typeOffset[type];
+        const baseY = this.CHECKPOINT_BASE_Y;
+        
+        const x = baseX + (col * colSpacing);
+        const y = baseY + (row * rowSpacing);
+        
+        return { x, y };
+    }
+    
+    /**
+     * Sorts the checkpoint queue by priority
+     */
+    private sortCheckpointQueue(): void {
+        const priorityMap: Record<string, number> = {
+            'rabbit': 1,
+            'pig': 2,
+            'turtle': 3
+        };
+        
+        this.checkpointQueue.sort((a, b) => {
+            return priorityMap[a.type] - priorityMap[b.type];
+        });
+    }
+    
+    /**
+     * Arranges animals in checkpoint queue
+     * Rectangular formation: rabbit columns on left, pig in middle, turtle on right
+     */
+    private arrangeCheckpointQueue(): void {
+        // Group by type
+        const groups = {
+            rabbit: this.checkpointQueue.filter(a => a.type === 'rabbit'),
+            pig: this.checkpointQueue.filter(a => a.type === 'pig'),
+            turtle: this.checkpointQueue.filter(a => a.type === 'turtle')
+        };
+        
+        // Layout parameters
+        const colSpacing = 35;  // 列间距
+        const rowSpacing = 35;  // 行间距
+        const itemsPerRow = 3;  // 每行3个
+        
+        // Arrange each group
+        Object.entries(groups).forEach(([type, animals]) => {
+            const typeOffset = {
+                'rabbit': 0,
+                'pig': 80,
+                'turtle': 160
+            };
+            
+            animals.forEach((animal, index) => {
+                const row = Math.floor(index / itemsPerRow);
+                const col = index % itemsPerRow;
+                
+                const baseX = this.CHECKPOINT_START_X + typeOffset[type as 'rabbit' | 'pig' | 'turtle'];
+                const targetX = baseX + (col * colSpacing) + animal.randomOffset.x;
+                const targetY = this.CHECKPOINT_BASE_Y + (row * rowSpacing) + animal.randomOffset.y;
+                
+                // Smooth transition
+                this.tweens.add({
+                    targets: animal.sprite,
+                    x: targetX,
+                    y: targetY,
+                    duration: 300,
+                    ease: 'Power2'
+                });
+                
+                animal.queuePosition = { x: targetX, y: targetY };
+            });
+        });
     }
 
     /**
