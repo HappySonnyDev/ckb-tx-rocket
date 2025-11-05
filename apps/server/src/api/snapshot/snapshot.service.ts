@@ -25,11 +25,41 @@ export class SnapshotService {
     });
   }
 
-  async getProposedTransactions(limit: number = 20) {
+  async getProposedTransactions(limit: number = 15) {
     return this.prisma.transaction.findMany({
       where: {
         status: 'PROPOSED',
       },
+      include: {
+        block: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: limit,
+    });
+  }
+
+  async getConfirmedTransactions(blockNumber?: bigint, limit: number = 20) {
+    const where: any = {
+      status: 'CONFIRMED',
+    };
+
+    // If blockNumber is provided, get confirmed transactions from that specific block
+    if (blockNumber !== undefined) {
+      const block = await this.prisma.block.findUnique({
+        where: {
+          number: blockNumber,
+        },
+      });
+
+      if (block) {
+        where.blockId = block.id;
+      }
+    }
+
+    return this.prisma.transaction.findMany({
+      where,
       include: {
         block: true,
       },

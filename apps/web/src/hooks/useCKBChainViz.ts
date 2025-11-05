@@ -7,6 +7,7 @@ export interface CKBChainVizState {
   latestBlock: Block | null;
   pendingTransactions: EnhancedTransaction[];
   proposedTransactions: EnhancedTransaction[];
+  confirmedTransactions: EnhancedTransaction[];
   recentBlocks: Block[];
   recentTransactions: EnhancedTransaction[];
   error: string | null;
@@ -22,6 +23,7 @@ export function useCKBChainViz() {
     latestBlock: null,
     pendingTransactions: [],
     proposedTransactions: [],
+    confirmedTransactions: [],
     recentBlocks: [],
     recentTransactions: [],
     error: null,
@@ -54,14 +56,25 @@ export function useCKBChainViz() {
       chainVizService.subscribe('chain');
       chainVizService.subscribe('transactions');
 
+      console.log('📡 Fetching snapshot data...');
       const snapshot = await chainVizService.getSnapshot();
+      console.log('📦 Snapshot received:', snapshot);
+      console.log('   - data:', snapshot?.data);
+      console.log('   - latestBlock:', snapshot?.data?.latestBlock);
+      console.log('   - pendingTransactions:', snapshot?.data?.pendingTransactions);
+      console.log('   - proposedTransactions:', snapshot?.data?.proposedTransactions);
+      console.log('   - confirmedTransactions:', snapshot?.data?.confirmedTransactions);
+
+      // Extract data from the response wrapper
+      const snapshotData = snapshot?.data || {};
 
       updateState({
         isConnected: true,
-        latestBlock: snapshot?.latestBlock || null,
-        pendingTransactions: snapshot?.pendingTransactions || [],
-        proposedTransactions: snapshot?.proposedTransactions || [],
-        recentBlocks: snapshot?.latestBlock ? [snapshot.latestBlock] : [],
+        latestBlock: snapshotData.latestBlock || null,
+        pendingTransactions: snapshotData.pendingTransactions || [],
+        proposedTransactions: snapshotData.proposedTransactions || [],
+        confirmedTransactions: snapshotData.confirmedTransactions || [],
+        recentBlocks: snapshotData.latestBlock ? [snapshotData.latestBlock] : [],
       });
     } catch (error) {
       console.error('Failed to connect to CKB ChainViz:', error);
@@ -84,6 +97,7 @@ export function useCKBChainViz() {
       latestBlock: null,
       pendingTransactions: [],
       proposedTransactions: [],
+      confirmedTransactions: [],
       recentBlocks: [],
       recentTransactions: [],
     });
@@ -142,19 +156,19 @@ export function useCKBChainViz() {
     };
 
     EventBus.on('chainviz-disconnected', handleDisconnected);
-    EventBus.on('block-finalized', handleBlockFinalized);
-    EventBus.on('transaction-pending', handleTransactionPending);
-    EventBus.on('transaction-proposed', handleTransactionProposed);
-    EventBus.on('transaction-confirmed', handleTransactionConfirmed);
-    EventBus.on('transaction-rejected', handleTransactionRejected);
+    // EventBus.on('block-finalized', handleBlockFinalized);
+    // EventBus.on('transaction-pending', handleTransactionPending);
+    // EventBus.on('transaction-proposed', handleTransactionProposed);
+    // EventBus.on('transaction-confirmed', handleTransactionConfirmed);
+    // EventBus.on('transaction-rejected', handleTransactionRejected);
 
     return () => {
       EventBus.off('chainviz-disconnected', handleDisconnected);
-      EventBus.off('block-finalized', handleBlockFinalized);
-      EventBus.off('transaction-pending', handleTransactionPending);
-      EventBus.off('transaction-proposed', handleTransactionProposed);
-      EventBus.off('transaction-confirmed', handleTransactionConfirmed);
-      EventBus.off('transaction-rejected', handleTransactionRejected);
+    //   EventBus.off('block-finalized', handleBlockFinalized);
+    //   EventBus.off('transaction-pending', handleTransactionPending);
+    //   EventBus.off('transaction-proposed', handleTransactionProposed);
+    //   EventBus.off('transaction-confirmed', handleTransactionConfirmed);
+    //   EventBus.off('transaction-rejected', handleTransactionRejected);
     };
   }, [updateState]);
 

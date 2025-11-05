@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { IRefPhaserGame, PhaserGame } from './PhaserGame';
 import { useCKBChainViz } from './hooks/useCKBChainViz';
 import { chainVizConfig } from './config/chainviz.config';
+import { Game } from './game/scenes/Game';
 
 /**
  * Main application component that integrates Phaser game with CKB ChainViz
@@ -16,6 +17,39 @@ function App() {
       chainViz.connect();
     }
   }, [chainViz.connect]);
+
+  // When snapshot data is available, pass it to the Game scene
+  useEffect(() => {
+    console.log('📊 App.tsx useEffect triggered');
+    console.log('   - isConnected:', chainViz.isConnected);
+    console.log('   - scene exists:', !!phaserRef.current?.scene);
+    console.log('   - pending count:', chainViz.pendingTransactions?.length);
+    console.log('   - proposed count:', chainViz.proposedTransactions?.length);
+    
+    if (chainViz.isConnected && phaserRef.current?.scene) {
+      const gameScene = phaserRef.current.scene as Game;
+      
+      // Call the public method to initialize queues
+      if (gameScene.initializeFromSnapshot) {
+        console.log('🎯 Calling initializeFromSnapshot...');
+        gameScene.initializeFromSnapshot({
+          latestBlock: chainViz.latestBlock,
+          pendingTransactions: chainViz.pendingTransactions,
+          proposedTransactions: chainViz.proposedTransactions,
+          confirmedTransactions: chainViz.confirmedTransactions,
+        });
+      } else {
+        console.warn('⚠️ initializeFromSnapshot method not found on game scene');
+      }
+    }
+  }, [
+    chainViz.isConnected,
+    chainViz.latestBlock,
+    chainViz.pendingTransactions?.length, // Use length instead of array reference
+    chainViz.proposedTransactions?.length, // Use length instead of array reference
+    chainViz.confirmedTransactions?.length, // Add confirmed transactions count
+    phaserRef.current?.scene, // Add scene to dependencies
+  ]);
 
   return (
     <div id="app">

@@ -20,6 +20,10 @@ export class SnapshotController {
         throw new HttpException('No blocks found', HttpStatus.NOT_FOUND);
       }
 
+      // Get confirmed transactions from the latest block
+      const confirmedTransactions =
+        await this.snapshotService.getConfirmedTransactions(latestBlock.number);
+
       const response = {
         data: {
           latestBlock: {
@@ -36,6 +40,17 @@ export class SnapshotController {
             size: tx.size.toString(),
           })),
           proposedTransactions: proposedTransactions.map((tx) => ({
+            txHash: tx.hash,
+            timestamp: tx.createdAt.toISOString(),
+            fee: tx.fee.toString(),
+            feeRate: this.snapshotService.calculateFeeRate(tx.fee, tx.size),
+            size: tx.size.toString(),
+            context: {
+              blockNumber: tx.block?.number.toString() || '0',
+              blockHash: tx.block?.hash || '',
+            },
+          })),
+          confirmedTransactions: confirmedTransactions.map((tx) => ({
             txHash: tx.hash,
             timestamp: tx.createdAt.toISOString(),
             fee: tx.fee.toString(),

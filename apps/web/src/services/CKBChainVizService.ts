@@ -19,6 +19,9 @@ export interface Block {
 export interface Transaction {
     txHash: string;
     timestamp: string;
+    fee?: string;
+    feeRate?: string;
+    size?: string;
     context?: {
         blockNumber?: string;
         blockHash?: string;
@@ -31,9 +34,13 @@ export interface EnhancedTransaction extends Transaction {
 }
 
 export interface Snapshot {
-    latestBlock?: Block;
-    pendingTransactions?: EnhancedTransaction[];
-    proposedTransactions?: EnhancedTransaction[];
+    data: {
+        latestBlock?: Block;
+        pendingTransactions?: EnhancedTransaction[];
+        proposedTransactions?: EnhancedTransaction[];
+        confirmedTransactions?: EnhancedTransaction[];
+    };
+    timestamp: string;
 }
 
 export interface WebSocketMessage {
@@ -164,7 +171,7 @@ export class CKBChainVizService {
     private handleMessage(data: WebSocketMessage): void {
         const { channel, type, payload } = data;
 
-        console.log(`Received ${type} event on ${channel} channel:`, payload);
+        // console.log(`Received ${type} event on ${channel} channel:`, payload);
 
         try {
             switch (type) {
