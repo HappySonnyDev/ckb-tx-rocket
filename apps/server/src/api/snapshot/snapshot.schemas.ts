@@ -44,6 +44,8 @@ export const SnapshotDataSchema = z.object({
   pendingTransactions: z.array(SnapshotTransactionSchema),
   proposedTransactions: z.array(SnapshotProposedTransactionSchema),
   confirmedTransactions: z.array(SnapshotConfirmedTransactionSchema),
+  pendingTransactionCount: z.number(),
+  proposedTransactionCount: z.number(),
 });
 
 export const SnapshotResponseSchema = z.object({

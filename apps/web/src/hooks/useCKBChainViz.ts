@@ -156,19 +156,19 @@ export function useCKBChainViz() {
     };
 
     EventBus.on('chainviz-disconnected', handleDisconnected);
-    // EventBus.on('block-finalized', handleBlockFinalized);
-    // EventBus.on('transaction-pending', handleTransactionPending);
-    // EventBus.on('transaction-proposed', handleTransactionProposed);
-    // EventBus.on('transaction-confirmed', handleTransactionConfirmed);
-    // EventBus.on('transaction-rejected', handleTransactionRejected);
+    EventBus.on('block-finalized', handleBlockFinalized);
+    EventBus.on('transaction-pending', handleTransactionPending);
+    EventBus.on('transaction-proposed', handleTransactionProposed);
+    EventBus.on('transaction-confirmed', handleTransactionConfirmed);
+    EventBus.on('transaction-rejected', handleTransactionRejected);
 
     return () => {
       EventBus.off('chainviz-disconnected', handleDisconnected);
-    //   EventBus.off('block-finalized', handleBlockFinalized);
-    //   EventBus.off('transaction-pending', handleTransactionPending);
-    //   EventBus.off('transaction-proposed', handleTransactionProposed);
-    //   EventBus.off('transaction-confirmed', handleTransactionConfirmed);
-    //   EventBus.off('transaction-rejected', handleTransactionRejected);
+      EventBus.off('block-finalized', handleBlockFinalized);
+      EventBus.off('transaction-pending', handleTransactionPending);
+      EventBus.off('transaction-proposed', handleTransactionProposed);
+      EventBus.off('transaction-confirmed', handleTransactionConfirmed);
+      EventBus.off('transaction-rejected', handleTransactionRejected);
     };
   }, [updateState]);
 

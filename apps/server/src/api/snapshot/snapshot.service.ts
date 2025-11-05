@@ -12,8 +12,8 @@ export class SnapshotService {
       },
     });
   }
-
-  async getPendingTransactions(limit: number = 50) {
+  // max = 138
+  async getPendingTransactions(limit: number = 10) {
     return this.prisma.transaction.findMany({
       where: {
         status: 'PENDING',
@@ -24,8 +24,8 @@ export class SnapshotService {
       take: limit,
     });
   }
-
-  async getProposedTransactions(limit: number = 15) {
+  // max = 15
+  async getProposedTransactions(limit: number = 4) {
     return this.prisma.transaction.findMany({
       where: {
         status: 'PROPOSED',
@@ -79,5 +79,21 @@ export class SnapshotService {
     // Converting to a more readable format with 2 decimal places
     const feeRate = Number(fee) / Number(size);
     return feeRate.toFixed(2);
+  }
+
+  async getPendingTransactionCount(): Promise<number> {
+    return this.prisma.transaction.count({
+      where: {
+        status: 'PENDING',
+      },
+    });
+  }
+
+  async getProposedTransactionCount(): Promise<number> {
+    return this.prisma.transaction.count({
+      where: {
+        status: 'PROPOSED',
+      },
+    });
   }
 }

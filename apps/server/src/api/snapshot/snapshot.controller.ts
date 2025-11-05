@@ -9,12 +9,19 @@ export class SnapshotController {
   @Get('snapshot')
   async getCurrentSnapshot(): Promise<SnapshotResponse> {
     try {
-      const [latestBlock, pendingTransactions, proposedTransactions] =
-        await Promise.all([
-          this.snapshotService.getLatestBlock(),
-          this.snapshotService.getPendingTransactions(),
-          this.snapshotService.getProposedTransactions(),
-        ]);
+      const [
+        latestBlock,
+        pendingTransactions,
+        proposedTransactions,
+        pendingTransactionCount,
+        proposedTransactionCount,
+      ] = await Promise.all([
+        this.snapshotService.getLatestBlock(),
+        this.snapshotService.getPendingTransactions(),
+        this.snapshotService.getProposedTransactions(),
+        this.snapshotService.getPendingTransactionCount(),
+        this.snapshotService.getProposedTransactionCount(),
+      ]);
 
       if (!latestBlock) {
         throw new HttpException('No blocks found', HttpStatus.NOT_FOUND);
@@ -61,6 +68,8 @@ export class SnapshotController {
               blockHash: tx.block?.hash || '',
             },
           })),
+          pendingTransactionCount,
+          proposedTransactionCount,
         },
         timestamp: new Date().toISOString(),
       };

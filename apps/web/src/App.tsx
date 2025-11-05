@@ -11,6 +11,7 @@ function App() {
   const phaserRef = useRef<IRefPhaserGame | null>(null);
   const chainViz = useCKBChainViz();
   const [showControls, setShowControls] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false); // Track if already initialized
 
   useEffect(() => {
     if (chainVizConfig.autoConnect) {
@@ -18,37 +19,38 @@ function App() {
     }
   }, [chainViz.connect]);
 
-  // When snapshot data is available, pass it to the Game scene
+  // When snapshot data is available, pass it to the Game scene ONLY ONCE
   useEffect(() => {
     console.log('📊 App.tsx useEffect triggered');
     console.log('   - isConnected:', chainViz.isConnected);
     console.log('   - scene exists:', !!phaserRef.current?.scene);
+    console.log('   - isInitialized:', isInitialized);
     console.log('   - pending count:', chainViz.pendingTransactions?.length);
     console.log('   - proposed count:', chainViz.proposedTransactions?.length);
     
-    if (chainViz.isConnected && phaserRef.current?.scene) {
+    // Only initialize ONCE when connection is established
+    if (chainViz.isConnected && phaserRef.current?.scene && !isInitialized) {
       const gameScene = phaserRef.current.scene as Game;
       
       // Call the public method to initialize queues
       if (gameScene.initializeFromSnapshot) {
-        console.log('🎯 Calling initializeFromSnapshot...');
+        console.log('🎯 Calling initializeFromSnapshot (FIRST TIME ONLY)...');
         gameScene.initializeFromSnapshot({
           latestBlock: chainViz.latestBlock,
           pendingTransactions: chainViz.pendingTransactions,
           proposedTransactions: chainViz.proposedTransactions,
           confirmedTransactions: chainViz.confirmedTransactions,
         });
+        setIsInitialized(true); // Mark as initialized
+        console.log('✅ Initialization complete, subsequent WebSocket updates will be handled by EventBus');
       } else {
         console.warn('⚠️ initializeFromSnapshot method not found on game scene');
       }
     }
   }, [
     chainViz.isConnected,
-    chainViz.latestBlock,
-    chainViz.pendingTransactions?.length, // Use length instead of array reference
-    chainViz.proposedTransactions?.length, // Use length instead of array reference
-    chainViz.confirmedTransactions?.length, // Add confirmed transactions count
-    phaserRef.current?.scene, // Add scene to dependencies
+    phaserRef.current?.scene,
+    isInitialized, // Only dependency we care about for initialization
   ]);
 
   return (
