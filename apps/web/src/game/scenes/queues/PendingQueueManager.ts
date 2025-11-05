@@ -1,0 +1,122 @@
+/**
+ * Pending Queue Manager
+ * Manages the pending transaction queue (triangular formation)
+ */
+
+import { Scene } from "phaser";
+import { QueueManager } from "./QueueManager";
+import { AnimalQueueItem, GAME_CONSTANTS } from "../types/GameTypes";
+import { PositionCalculator } from "../utils/PositionCalculator";
+import { EnhancedTransaction } from "../../../services/CKBChainVizService";
+import { AnimalFactory } from "../utils/AnimalFactory";
+
+export class PendingQueueManager extends QueueManager {
+    /**
+     * Initializes the pending queue from snapshot data
+     * @param transactions - Array of pending transactions
+     */
+    public initializeFromSnapshot(transactions: EnhancedTransaction[]): void {
+        console.log(
+            `Initializing pending queue with ${transactions.length} transactions`,
+        );
+        
+        // Clear existing queue first
+        this.clear();
+        
+        // Calculate dynamic thresholds
+        const thresholds = AnimalFactory.calculateThresholds(transactions);
+        console.log("Fee rate thresholds:", thresholds);
+        
+        // Create animals for each transaction (cap to MAX_PENDING_CAPACITY)
+        const toCreate = transactions.slice(0, GAME_CONSTANTS.MAX_PENDING_CAPACITY);
+        toCreate.forEach((tx, index) => {
+            const animalType = AnimalFactory.determineAnimalType(tx, index, thresholds);
+            const randomOffset = PositionCalculator.generateRandomOffset();
+            const basePosition = PositionCalculator.calculatePendingBasePosition(
+                this.queue.length,
+            );
+            const queuePosition = {
+                x: basePosition.x + randomOffset.x,
+                y: basePosition.y + randomOffset.y,
+            };
+            
+            // Create animal sprite directly at queue position (no animation)
+            const animal = AnimalFactory.createAnimalSprite(
+                this.scene,
+                queuePosition.x,
+                queuePosition.y,
+                animalType,
+                `${animalType}_b`, // Use queue sprite (背身图片)
+            );
+            
+            // Add to pending queue
+            this.add({
+                sprite: animal,
+                type: animalType,
+                queuePosition: queuePosition,
+                randomOffset: randomOffset,
+                txHash: tx.txHash,
+            });
+        });
+        
+        // Sort and arrange queue (without animation for initial load)
+        this.sortByPriority();
+        this.arrangeQueue(true);
+        
+        console.log(
+            `Pending queue initialized with ${this.queue.length} animals`,
+        );
+    }
+    
+    /**
+     * Arranges animals in triangular formation
+     * @param skipAnimation - If true, directly set positions without animation
+     */
+    public arrangeQueue(skipAnimation: boolean = false): void {
+        // Save old positions before rearranging
+        const oldPositions = new Map<
+            Phaser.GameObjects.Image,
+            { x: number; y: number }
+        >();
+        this.queue.forEach((animal) => {
+            oldPositions.set(animal.sprite, { ...animal.queuePosition });
+        });
+        
+        // Arrange all animals in a single triangular formation
+        this.queue.forEach((animal, index) => {
+            // Calculate base position using the index
+            const basePosition = PositionCalculator.calculatePendingBasePosition(index);
+            
+            // Apply the animal's fixed random offset
+            const targetX = basePosition.x + animal.randomOffset.x;
+            const targetY = basePosition.y + animal.randomOffset.y;
+            
+            // Get old position
+            const oldPos = oldPositions.get(animal.sprite);
+            
+            // Only animate if position actually changed
+            if (
+                !oldPos ||
+                Math.abs(oldPos.x - targetX) > 0.1 ||
+                Math.abs(oldPos.y - targetY) > 0.1
+            ) {
+                if (skipAnimation) {
+                    // Directly set position without animation
+                    animal.sprite.setPosition(targetX, targetY);
+                } else {
+                    // Smooth transition to new position
+                    this.scene.tweens.add({
+                        targets: animal.sprite,
+                        x: targetX,
+                        y: targetY,
+                        duration: 300,
+                        ease: "Power2",
+                    });
+                }
+            }
+            
+            // Update stored position
+            animal.queuePosition = { x: targetX, y: targetY };
+        });
+    }
+}
