@@ -3,6 +3,7 @@ import { IRefPhaserGame, PhaserGame } from './PhaserGame';
 import { useCKBChainViz } from './hooks/useCKBChainViz';
 import { chainVizConfig } from './config/chainviz.config';
 import { Game } from './game/scenes/Game';
+import { EventBus } from './game/EventBus';
 
 /**
  * Main application component that integrates Phaser game with CKB ChainViz
@@ -13,6 +14,24 @@ function App() {
   const [showControls, setShowControls] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false); // Track if already initialized
 
+  // 在 App 侧维护门框计数（以 snapshot 初始化，再按事件增量）
+  const pendingCountRef = useRef<number>(0);
+  const proposedCountRef = useRef<number>(0);
+
+  // 封装：更新门框文案（优先调用 Game 的公开方法；否则直接设置私有字段）
+  const updateGateLabels = (gameScene: any, pending: number, proposed: number) => {
+    if (typeof gameScene.setGateCounts === 'function') {
+      gameScene.setGateCounts(pending, proposed);
+      return;
+    }
+    if (gameScene.gateText1) {
+      gameScene.gateText1.setText(`↑ PROPOSED QUEUE:${proposed}`);
+    }
+    if (gameScene.gateText2) {
+      gameScene.gateText2.setText(`↓ PENDING QUEUE:${pending}`);
+    }
+  };
+
   useEffect(() => {
     if (chainVizConfig.autoConnect) {
       chainViz.connect();
@@ -21,169 +40,84 @@ function App() {
 
   // When snapshot data is available, pass it to the Game scene ONLY ONCE
   useEffect(() => {
-    console.log('📊 App.tsx useEffect triggered');
-    console.log('   - isConnected:', chainViz.isConnected);
-    console.log('   - scene exists:', !!phaserRef.current?.scene);
-    console.log('   - isInitialized:', isInitialized);
-    console.log('   - pending count:', chainViz.pendingTransactions?.length);
-    console.log('   - proposed count:', chainViz.proposedTransactions?.length);
-    
     // Only initialize ONCE when connection is established
     if (chainViz.isConnected && phaserRef.current?.scene && !isInitialized) {
       const gameScene = phaserRef.current.scene as Game;
-      
-      // Call the public method to initialize queues
+
+      // 初始化门框计数（以 snapshot 的 count 字段作为初始值）
+      pendingCountRef.current = (chainViz as any).pendingTransactionCount || chainViz.pendingTransactions?.length || 0;
+      proposedCountRef.current = (chainViz as any).proposedTransactionCount || chainViz.proposedTransactions?.length || 0;
+      updateGateLabels(gameScene as any, pendingCountRef.current, proposedCountRef.current);
+
+      // 初始化队列（一次性）
       if (gameScene.initializeFromSnapshot) {
-        console.log('🎯 Calling initializeFromSnapshot (FIRST TIME ONLY)...');
         gameScene.initializeFromSnapshot({
           latestBlock: chainViz.latestBlock,
           pendingTransactions: chainViz.pendingTransactions,
           proposedTransactions: chainViz.proposedTransactions,
           confirmedTransactions: chainViz.confirmedTransactions,
         });
-        setIsInitialized(true); // Mark as initialized
-        console.log('✅ Initialization complete, subsequent WebSocket updates will be handled by EventBus');
-      } else {
-        console.warn('⚠️ initializeFromSnapshot method not found on game scene');
+        setIsInitialized(true);
       }
     }
-  }, [
-    chainViz.isConnected,
-    phaserRef.current?.scene,
-    isInitialized, // Only dependency we care about for initialization
-  ]);
+  }, [chainViz.isConnected, phaserRef.current?.scene, isInitialized]);
+
+  // 订阅 WebSocket 事务事件：更新计数+触发动画（若方法存在）
+  useEffect(() => {
+    if (!isInitialized || !phaserRef.current?.scene) return;
+    const gameScene = phaserRef.current.scene as any;
+
+    const onTxPending = (tx: any) => {
+      pendingCountRef.current += 1;
+      updateGateLabels(gameScene, pendingCountRef.current, proposedCountRef.current);
+      if (typeof gameScene.handleTransactionPending === 'function') {
+        gameScene.handleTransactionPending(tx);
+      }
+    };
+
+    const onTxProposed = (tx: any) => {
+      // proposed 事件发生时，pending 要 -1（交易从 pending 变为 proposed）
+      pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
+      proposedCountRef.current += 1;
+      updateGateLabels(gameScene, pendingCountRef.current, proposedCountRef.current);
+      if (typeof gameScene.handleTransactionProposed === 'function') {
+        gameScene.handleTransactionProposed(tx);
+      }
+    };
+
+    const onTxConfirmed = (tx: any) => {
+      // confirmed 事件发生时，proposed 要 -1（交易从 proposed 变为 confirmed）
+      proposedCountRef.current = Math.max(0, proposedCountRef.current - 1);
+      updateGateLabels(gameScene, pendingCountRef.current, proposedCountRef.current);
+      if (typeof gameScene.handleTransactionConfirmed === 'function') {
+        gameScene.handleTransactionConfirmed(tx);
+      }
+    };
+
+    const onBlockFinalized = (block: any) => {
+      // block.finalized 事件发生时，触发火箭发射动画
+      console.log(`🚀 Block finalized: #${block.blockNumber}, 准备发射火箭...`);
+      if (typeof gameScene.launchRocket === 'function') {
+        gameScene.launchRocket();
+      }
+    };
+
+    EventBus.on('transaction-pending', onTxPending);
+    EventBus.on('transaction-proposed', onTxProposed);
+    EventBus.on('transaction-confirmed', onTxConfirmed);
+    EventBus.on('block-finalized', onBlockFinalized);
+
+    return () => {
+      EventBus.off('transaction-pending', onTxPending);
+      EventBus.off('transaction-proposed', onTxProposed);
+      EventBus.off('transaction-confirmed', onTxConfirmed);
+      EventBus.off('block-finalized', onBlockFinalized);
+    };
+  }, [isInitialized, phaserRef.current?.scene]);
 
   return (
     <div id="app">
       <PhaserGame ref={phaserRef} />
-
-      {/* {showControls && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '10px',
-            right: '10px',
-            background: 'rgba(0, 0, 0, 0.8)',
-            color: 'white',
-            padding: '15px',
-            borderRadius: '8px',
-            fontSize: '14px',
-            minWidth: '250px',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '10px',
-            }}
-          >
-            <h3 style={{ margin: 0, fontSize: '16px' }}>CKB ChainViz</h3>
-            <button
-              onClick={() => setShowControls(false)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: '16px',
-              }}
-            >
-              ×
-            </button>
-          </div>
-
-          <div style={{ marginBottom: '10px' }}>
-            Status:{' '}
-            <span
-              style={{
-                color: chainViz.isConnected
-                  ? '#00ff00'
-                  : chainViz.isConnecting
-                    ? '#ffff00'
-                    : '#ff0000',
-              }}
-            >
-              {chainViz.isConnecting
-                ? 'Connecting...'
-                : chainViz.isConnected
-                  ? 'Connected'
-                  : 'Disconnected'}
-            </span>
-          </div>
-
-          {chainViz.error && (
-            <div style={{ color: '#ff0000', marginBottom: '10px', fontSize: '12px' }}>
-              Error: {chainViz.error}
-            </div>
-          )}
-
-          <div style={{ fontSize: '12px', color: '#cccccc', marginBottom: '10px' }}>
-            URL: {chainVizConfig.url}
-          </div>
-
-          {chainViz.isConnected && (
-            <div>
-              <div>Latest Block: #{chainViz.latestBlock?.blockNumber || 'N/A'}</div>
-              <div>Pending TXs: {chainViz.pendingTransactions?.length || 0}</div>
-              <div>Proposed TXs: {chainViz.proposedTransactions?.length || 0}</div>
-            </div>
-          )}
-
-          <div style={{ marginTop: '10px' }}>
-            {!chainViz.isConnected ? (
-              <button
-                onClick={chainViz.connect}
-                disabled={chainViz.isConnecting}
-                style={{
-                  background: '#0066cc',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  cursor: chainViz.isConnecting ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {chainViz.isConnecting ? 'Connecting...' : 'Connect'}
-              </button>
-            ) : (
-              <button
-                onClick={chainViz.disconnect}
-                style={{
-                  background: '#cc0000',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                }}
-              >
-                Disconnect
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {!showControls && (
-        <button
-          onClick={() => setShowControls(true)}
-          style={{
-            position: 'absolute',
-            top: '10px',
-            right: '10px',
-            background: 'rgba(0, 0, 0, 0.8)',
-            color: 'white',
-            border: 'none',
-            padding: '8px 12px',
-            borderRadius: '4px',
-            cursor: 'pointer',
-          }}
-        >
-          ChainViz
-        </button>
-      )} */}
     </div>
   );
 }

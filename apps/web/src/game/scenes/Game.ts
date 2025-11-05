@@ -1,13 +1,27 @@
 import { Scene } from "phaser";
 import { EventBus } from "../EventBus";
-import { CKBChainVizService, Block, EnhancedTransaction } from "../../services/CKBChainVizService";
+import {
+    CKBChainVizService,
+    Block,
+    EnhancedTransaction,
+} from "../../services/CKBChainVizService";
 import { createRoot, Root } from "react-dom/client";
 import { createElement } from "react";
 import { NetworkSelector } from "../../components/NetworkSelector";
 import { AboutUs } from "../../components/AboutUs";
 import { FeedbackButton } from "../../components/FeedbackButton";
 import { Tooltip, TooltipContent } from "../../components/Tooltip";
-import { getAnimalTypeByFeeRate, calculateFeeRateThresholds, AnimalType } from "../../utils/feeRateUtils";
+import {
+    getAnimalTypeByFeeRate,
+    calculateFeeRateThresholds,
+    AnimalType,
+} from "../../utils/feeRateUtils";
+const MAX_PENDING_CAPACITY = 138;
+const MAX_PROPOSED_CAPACITY = 15;
+const MAX_CONCURRENT_PENDING_ARRIVALS = 8;
+const MAX_CONCURRENT_PROPOSED_ARRIVALS = 6;
+const ARRIVAL_RETRY_DELAY_MS = 250;
+const ARRIVAL_INTERVAL_MS = 1000;
 
 export class Game extends Scene {
     private skyBackgroundCenter!: Phaser.GameObjects.TileSprite;
@@ -89,6 +103,7 @@ export class Game extends Scene {
         type: "rabbit" | "pig" | "turtle";
         queuePosition: { x: number; y: number };
         randomOffset: { x: number; y: number }; // 固定的随机偏移，不会改变
+        txHash?: string;
     }> = [];
 
     // Proposed transaction queue (animals moving from pending queue to proposed)
@@ -97,6 +112,7 @@ export class Game extends Scene {
         type: "rabbit" | "pig" | "turtle";
         queuePosition: { x: number; y: number };
         randomOffset: { x: number; y: number };
+        txHash?: string;
     }> = [];
 
     // Confirmed transaction queue (animals in the rocket)
@@ -125,6 +141,10 @@ export class Game extends Scene {
     private readonly MAX_ANIMATION_LOOPS = 30; // 最大循环次数
     private checkpointMoveCount = 0; // Checkpoint移动计数器
     private readonly MAX_CHECKPOINT_MOVES = 16; // 最多移动8个动物到Checkpoint
+    private pendingInFlight: number = 0; // 进行中的 pending 入队动画计数
+    private proposedInFlight: number = 0; // 进行中的 proposed 到达/回退动画计数
+    private nextPendingArrivalTimeMs: number = 0; // 下一个 pending 到达动画的最早启动时间戳
+    private nextProposedArrivalTimeMs: number = 0; // 下一个 proposed 到达动画的最早启动时间戳
 
     constructor() {
         super("Game");
@@ -222,7 +242,7 @@ export class Game extends Scene {
 
         // Note: Queue initialization will be done via initializeFromSnapshot()
         // when snapshot data is available from App.tsx
-        console.log('🎮 Game scene ready, waiting for snapshot data...');
+        console.log("🎮 Game scene ready, waiting for snapshot data...");
     }
 
     /**
@@ -230,53 +250,76 @@ export class Game extends Scene {
      * Called from App.tsx when snapshot data is loaded
      * @param data - Snapshot data from useCKBChainViz hook
      */
-    public initializeFromSnapshot(data: { 
+    public initializeFromSnapshot(data: {
         latestBlock: Block | null;
         pendingTransactions: EnhancedTransaction[];
         proposedTransactions: EnhancedTransaction[];
         confirmedTransactions: EnhancedTransaction[];
     }): void {
-        console.log('🎮 Game.ts: Received snapshot data from App.tsx');
-        console.log('   - latestBlock:', data.latestBlock?.blockNumber);
-        console.log('   - pendingTransactions:', data.pendingTransactions);
-        console.log('   - pendingTransactions.length:', data.pendingTransactions?.length);
-        console.log('   - proposedTransactions:', data.proposedTransactions);
-        console.log('   - proposedTransactions.length:', data.proposedTransactions?.length);
-        console.log('   - confirmedTransactions:', data.confirmedTransactions);
-        console.log('   - confirmedTransactions.length:', data.confirmedTransactions?.length);
-        
+        console.log("🎮 Game.ts: Received snapshot data from App.tsx");
+        console.log("   - latestBlock:", data.latestBlock?.blockNumber);
+        console.log("   - pendingTransactions:", data.pendingTransactions);
+        console.log(
+            "   - pendingTransactions.length:",
+            data.pendingTransactions?.length,
+        );
+        console.log("   - proposedTransactions:", data.proposedTransactions);
+        console.log(
+            "   - proposedTransactions.length:",
+            data.proposedTransactions?.length,
+        );
+        console.log("   - confirmedTransactions:", data.confirmedTransactions);
+        console.log(
+            "   - confirmedTransactions.length:",
+            data.confirmedTransactions?.length,
+        );
+
         // Store current block
         if (data.latestBlock) {
             this.currentBlock = data.latestBlock;
-            console.log('📦 Latest block:', data.latestBlock.blockNumber);
+            console.log("📦 Latest block:", data.latestBlock.blockNumber);
         }
-        
+
         // Initialize pending queue
         if (data.pendingTransactions && data.pendingTransactions.length > 0) {
-            console.log('🐇 Initializing pending queue...');
+            console.log("🐇 Initializing pending queue...");
             this.initializePendingQueue(data.pendingTransactions);
         } else {
-            console.log('⚠️ No pending transactions (data:', data.pendingTransactions, ')');
+            console.log(
+                "⚠️ No pending transactions (data:",
+                data.pendingTransactions,
+                ")",
+            );
         }
-        
+
         // Initialize proposed queue
         if (data.proposedTransactions && data.proposedTransactions.length > 0) {
-            console.log('🐷 Initializing proposed queue...');
+            console.log("🐷 Initializing proposed queue...");
             this.initializeProposedQueue(data.proposedTransactions);
         } else {
-            console.log('⚠️ No proposed transactions (data:', data.proposedTransactions, ')');
+            console.log(
+                "⚠️ No proposed transactions (data:",
+                data.proposedTransactions,
+                ")",
+            );
         }
-        
+
         // Store confirmed transactions for rocket click display
         // No need to create sprites, just store the transaction data
-        if (data.confirmedTransactions && data.confirmedTransactions.length > 0) {
-            console.log('🚀 Storing confirmed transactions:', data.confirmedTransactions.length);
+        if (
+            data.confirmedTransactions &&
+            data.confirmedTransactions.length > 0
+        ) {
+            console.log(
+                "🚀 Storing confirmed transactions:",
+                data.confirmedTransactions.length,
+            );
             // Clear and populate confirmQueue with transaction metadata
             this.confirmQueue = data.confirmedTransactions.map((tx, index) => {
                 // Determine animal type based on fee rate
-                const feeRate = parseFloat(tx.feeRate || '0');
+                const feeRate = parseFloat(tx.feeRate || "0");
                 const animalType = this.determineAnimalType(tx, index, null);
-                
+
                 return {
                     sprite: null as any, // No sprite needed for confirmed transactions
                     type: animalType,
@@ -286,11 +329,11 @@ export class Game extends Scene {
                 };
             });
         } else {
-            console.log('⚠️ No confirmed transactions');
+            console.log("⚠️ No confirmed transactions");
             this.confirmQueue = [];
         }
-        
-        console.log('✅ Queues initialized:');
+
+        console.log("✅ Queues initialized:");
         console.log(`   - Pending: ${this.pendingQueue.length}`);
         console.log(`   - Proposed: ${this.proposedQueue.length}`);
         console.log(`   - Confirmed: ${this.confirmQueue.length}`);
@@ -556,7 +599,7 @@ export class Game extends Scene {
         // Make rocket interactive
         if (this.rocket) {
             this.rocket.setInteractive({ useHandCursor: true });
-            this.rocket.on('pointerdown', () => {
+            this.rocket.on("pointerdown", () => {
                 this.handleRocketClick();
             });
         }
@@ -640,18 +683,22 @@ export class Game extends Scene {
      * Handles rocket click event - logs confirmed transactions
      */
     private handleRocketClick(): void {
-        console.log('🚀 Rocket clicked!');
-        console.log('📦 Confirmed transactions in rocket:');
-        
+        console.log("🚀 Rocket clicked!");
+        console.log("📦 Confirmed transactions in rocket:");
+
         if (this.confirmQueue.length === 0) {
-            console.log('  No confirmed transactions yet.');
+            console.log("  No confirmed transactions yet.");
         } else {
             this.confirmQueue.forEach((animal, index) => {
-                console.log(`  [${index + 1}] Type: ${animal.type}, TxHash: ${animal.txHash || 'N/A'}`);
+                console.log(
+                    `  [${index + 1}] Type: ${animal.type}, TxHash: ${animal.txHash || "N/A"}`,
+                );
             });
         }
-        
-        console.log(`Total: ${this.confirmQueue.length} confirmed transaction(s)`);
+
+        console.log(
+            `Total: ${this.confirmQueue.length} confirmed transaction(s)`,
+        );
     }
 
     /**
@@ -1335,35 +1382,40 @@ export class Game extends Scene {
      * @param transactions - Array of pending transactions from snapshot API
      */
     private initializePendingQueue(transactions: EnhancedTransaction[]): void {
-        console.log(`Initializing pending queue with ${transactions.length} transactions`);
-        
+        console.log(
+            `Initializing pending queue with ${transactions.length} transactions`,
+        );
+
         // Clear existing queue first
         this.clearPendingQueue();
-        
+
         // Calculate dynamic thresholds based on all transactions
         const feeRates = transactions
-            .map(tx => parseFloat(tx.feeRate || '0'))
-            .filter(rate => !isNaN(rate));
+            .map((tx) => parseFloat(tx.feeRate || "0"))
+            .filter((rate) => !isNaN(rate));
         const thresholds = calculateFeeRateThresholds(feeRates);
-        
-        console.log('Fee rate thresholds:', thresholds);
-        
-        // Create animals for each transaction
-        transactions.forEach((tx, index) => {
+
+        console.log("Fee rate thresholds:", thresholds);
+
+        // Create animals for each transaction (cap to MAX_PENDING_CAPACITY)
+        const toCreate = transactions.slice(0, MAX_PENDING_CAPACITY);
+        toCreate.forEach((tx, index) => {
             // Determine animal type based on fee rate
-            const feeRate = parseFloat(tx.feeRate || '0');
+            const feeRate = parseFloat(tx.feeRate || "0");
             const animalType = this.determineAnimalType(tx, index, thresholds);
-            
+
             // Generate random offset for this animal
             const randomOffset = this.generateRandomOffset();
-            
+
             // Calculate queue position
-            const basePosition = this.calculateBasePositionByIndex(this.pendingQueue.length);
+            const basePosition = this.calculateBasePositionByIndex(
+                this.pendingQueue.length,
+            );
             const queuePosition = {
                 x: basePosition.x + randomOffset.x,
                 y: basePosition.y + randomOffset.y,
             };
-            
+
             // Create animal sprite directly at queue position (no animation)
             const animal = this.add.image(
                 queuePosition.x,
@@ -1372,23 +1424,26 @@ export class Game extends Scene {
             );
             animal.setDisplaySize(this.ANIMAL_SIZE, this.ANIMAL_SIZE);
             animal.setOrigin(0.5, 0.5);
-            
+
             // Add to pending queue
             this.pendingQueue.push({
                 sprite: animal,
                 type: animalType,
                 queuePosition: queuePosition,
                 randomOffset: randomOffset,
+                txHash: tx.txHash,
             });
         });
-        
+
         // Sort and arrange queue (without animation for initial load)
         this.sortPendingByPriority();
         this.arrangePendingTriangle(true); // Pass true to skip animation
-        
-        console.log(`Pending queue initialized with ${this.pendingQueue.length} animals`);
+
+        console.log(
+            `Pending queue initialized with ${this.pendingQueue.length} animals`,
+        );
     }
-    
+
     /**
      * Determines animal type based on transaction data
      * @param tx - Transaction data
@@ -1397,9 +1452,9 @@ export class Game extends Scene {
      * @returns Animal type
      */
     private determineAnimalType(
-        tx: EnhancedTransaction, 
+        tx: EnhancedTransaction,
         index: number,
-        thresholds?: { p33: number; p66: number } | null
+        thresholds?: { p33: number; p66: number } | null,
     ): "rabbit" | "pig" | "turtle" {
         // If transaction has feeRate, use it to determine animal type
         if (tx.feeRate) {
@@ -1410,9 +1465,13 @@ export class Game extends Scene {
                 return animalType as "rabbit" | "pig" | "turtle";
             }
         }
-        
+
         // Fallback: distribute evenly by index
-        const types: Array<"rabbit" | "pig" | "turtle"> = ["rabbit", "pig", "turtle"];
+        const types: Array<"rabbit" | "pig" | "turtle"> = [
+            "rabbit",
+            "pig",
+            "turtle",
+        ];
         return types[index % 3];
     }
 
@@ -1421,8 +1480,10 @@ export class Game extends Scene {
      * @param transactions - Array of proposed transactions from snapshot API
      */
     private initializeProposedQueue(transactions: EnhancedTransaction[]): void {
-        console.log(`Initializing proposed queue with ${transactions.length} transactions`);
-        
+        console.log(
+            `Initializing proposed queue with ${transactions.length} transactions`,
+        );
+
         // Clear existing proposed queue first
         this.proposedQueue.forEach((animal) => {
             if (animal.sprite) {
@@ -1430,30 +1491,31 @@ export class Game extends Scene {
             }
         });
         this.proposedQueue = [];
-        
+
         // Calculate dynamic thresholds based on all transactions
         const feeRates = transactions
-            .map(tx => parseFloat(tx.feeRate || '0'))
-            .filter(rate => !isNaN(rate));
+            .map((tx) => parseFloat(tx.feeRate || "0"))
+            .filter((rate) => !isNaN(rate));
         const thresholds = calculateFeeRateThresholds(feeRates);
-        
-        console.log('Fee rate thresholds (proposed):', thresholds);
-        
-        // Create animals for each transaction
-        transactions.forEach((tx, index) => {
+
+        console.log("Fee rate thresholds (proposed):", thresholds);
+
+        // Create animals for each transaction (cap to MAX_PROPOSED_CAPACITY)
+        const toCreate = transactions.slice(0, MAX_PROPOSED_CAPACITY);
+        toCreate.forEach((tx, index) => {
             // Determine animal type based on fee rate
             const animalType = this.determineAnimalType(tx, index, thresholds);
-            
+
             // Generate random offset for this animal
             const randomOffset = this.generateRandomOffset();
-            
+
             // Calculate proposed queue position
             const position = this.calculateProposedPosition(animalType);
             const queuePosition = {
                 x: position.x + randomOffset.x,
                 y: position.y + randomOffset.y,
             };
-            
+
             // Create animal sprite directly at proposed position (no animation)
             // Use left-facing sprite since animals in proposed queue face left
             const animal = this.add.image(
@@ -1464,21 +1526,24 @@ export class Game extends Scene {
             animal.setDisplaySize(this.ANIMAL_SIZE, this.ANIMAL_SIZE);
             animal.setOrigin(0.5, 0.5);
             animal.setFlipX(false); // Face left
-            
+
             // Add to proposed queue
             this.proposedQueue.push({
                 sprite: animal,
                 type: animalType,
                 queuePosition: queuePosition,
                 randomOffset: randomOffset,
+                txHash: tx.txHash,
             });
         });
-        
+
         // Sort and arrange queue (without animation for initial load)
         this.sortProposedQueue();
         this.arrangeProposedQueue(true); // Pass true to skip animation
-        
-        console.log(`Proposed queue initialized with ${this.proposedQueue.length} animals`);
+
+        console.log(
+            `Proposed queue initialized with ${this.proposedQueue.length} animals`,
+        );
     }
 
     /**
@@ -1513,7 +1578,10 @@ export class Game extends Scene {
         }
 
         // Randomly select an animal from the queue
-        const randomIndex = Phaser.Math.Between(0, this.pendingQueue.length - 1);
+        const randomIndex = Phaser.Math.Between(
+            0,
+            this.pendingQueue.length - 1,
+        );
         const selectedAnimal = this.pendingQueue[randomIndex];
 
         // Remove from pending queue
@@ -1703,7 +1771,10 @@ export class Game extends Scene {
      * Spawns a single animal and animates it to queue position
      * @param type - Type of animal to spawn (rabbit, pig, or turtle)
      */
-    private spawnAnimal(type: "rabbit" | "pig" | "turtle"): void {
+    private spawnAnimal(
+        type: "rabbit" | "pig" | "turtle",
+        txHash?: string,
+    ): void {
         // Create animal sprite at Mempool exit
         const animal = this.add.image(
             this.MEMPOOL_START_X,
@@ -1727,6 +1798,7 @@ export class Game extends Scene {
                 type: type,
                 queuePosition: { x: 0, y: 0 },
                 randomOffset: randomOffset,
+                txHash,
             },
         ];
 
@@ -1759,6 +1831,24 @@ export class Game extends Scene {
             duration: duration,
             ease: "Linear",
             onComplete: () => {
+                // 入队动画完成，减少进行中计数
+                this.pendingInFlight = Math.max(0, this.pendingInFlight - 1);
+
+                // 容量二次校验，避免并发事件导致溢出
+                if (this.pendingQueue.length >= MAX_PENDING_CAPACITY) {
+                    // 淡出并销毁，不入队
+                    this.tweens.add({
+                        targets: animal,
+                        alpha: 0,
+                        duration: 150,
+                        ease: "Power2",
+                        onComplete: () => {
+                            animal.destroy();
+                        },
+                    });
+                    return;
+                }
+
                 // Switch to queue sprite (背身图片)
                 animal.setTexture(`${type}_b`);
 
@@ -1768,6 +1858,7 @@ export class Game extends Scene {
                     type: type,
                     queuePosition: queuePosition,
                     randomOffset: randomOffset,
+                    txHash,
                 });
 
                 // Sort queue by priority
@@ -1838,10 +1929,10 @@ export class Game extends Scene {
      * @returns Random offset for x and y
      */
     private generateRandomOffset(): { x: number; y: number } {
-        // 横向随机偏移 ±8px（增加横向波动，让三角形边缘更自然）
-        // 垂直随机偏移 ±6px
+        // 横向随机偏移 ±4px（用户偏好）
+        // 垂直随机偏移 ±6px（用户偏好）
         return {
-            x: (Math.random() - 0.5) * 16, // -8 到 +8
+            x: (Math.random() - 0.5) * 8, // -4 到 +4
             y: (Math.random() - 0.5) * 12, // -6 到 +6
         };
     }
@@ -1917,8 +2008,9 @@ export class Game extends Scene {
 
     /**
      * Launches the rocket with door closing and liftoff animation
+     * Public method to be called when block is finalized
      */
-    private launchRocket(): void {
+    public launchRocket(): void {
         if (this.isRocketLaunching) {
             console.log("火箭已在发射中，跳过");
             return;
@@ -1968,7 +2060,7 @@ export class Game extends Scene {
                 const liftoffDuration = 3000; // 3 seconds for liftoff
                 const rocketStartY = 264 + 279 - 75 - 89; // 火箭初始Y坐标
                 const targetY = -500; // Move rocket off screen
-                
+
                 // 计算火焰相对于火箭底部的偏移
                 // 火箭锚点在左下角(0,1)，火焰锚点在顶部中心(0.5,0)
                 // 火焰初始Y是火箭底部往上30像素的位置
@@ -2045,10 +2137,244 @@ export class Game extends Scene {
 
         this.isRocketLaunching = false;
         console.log("火箭已重置");
+    }
 
-        // Optional: Launch again after some time
-        this.time.delayedCall(10000, () => {
-            this.launchRocket();
+    // 公开：更新门框上的 PENDING/PROPOSED 文案
+    public setGateCounts(pending: number, proposed: number): void {
+        if (this.gateText1) {
+            this.gateText1.setText(`↑ PROPOSED QUEUE:${proposed}`);
+        }
+        if (this.gateText2) {
+            this.gateText2.setText(`↓ PENDING QUEUE:${pending}`);
+        }
+    }
+
+    // 私有：动画启动调度器，保证至少1s启动一个到达动画
+    private schedulePendingArrival(startFn: () => void): void {
+        const now = Date.now();
+        const delay = Math.max(0, this.nextPendingArrivalTimeMs - now);
+        this.nextPendingArrivalTimeMs = Math.max(this.nextPendingArrivalTimeMs, now) + ARRIVAL_INTERVAL_MS;
+        this.time.delayedCall(delay, () => startFn());
+    }
+
+    private scheduleProposedArrival(startFn: () => void): void {
+        const now = Date.now();
+        const delay = Math.max(0, this.nextProposedArrivalTimeMs - now);
+        this.nextProposedArrivalTimeMs = Math.max(this.nextProposedArrivalTimeMs, now) + ARRIVAL_INTERVAL_MS;
+        this.time.delayedCall(delay, () => startFn());
+    }
+
+    // 公开：处理 pending 事件（容量控制 + 入队动画，并发保护）
+    public handleTransactionPending(tx: EnhancedTransaction): void {
+        // 并发到达动画限流：超过上限则稍后重试
+        if (this.pendingInFlight >= MAX_CONCURRENT_PENDING_ARRIVALS) {
+            this.time.delayedCall(ARRIVAL_RETRY_DELAY_MS, () => this.handleTransactionPending(tx));
+            return;
+        }
+        const type = this.determineAnimalType(tx, 0, null);
+        this.schedulePendingArrival(() => { this.pendingInFlight++; this.spawnAnimal(type, tx.txHash); });
+    }
+
+    // 公开：处理 proposed 事件（按 txHash 精确移动；未渲染则回退动画）
+    public handleTransactionProposed(tx: EnhancedTransaction): void {
+        // 并发到达动画限流：超过上限则稍后重试
+        if (this.proposedInFlight >= MAX_CONCURRENT_PROPOSED_ARRIVALS) {
+            this.time.delayedCall(ARRIVAL_RETRY_DELAY_MS, () => this.handleTransactionProposed(tx));
+            return;
+        }
+        const exists = this.pendingQueue.some(a => a.txHash === tx.txHash);
+        if (exists) {
+            this.scheduleProposedArrival(() => {
+                const idx2 = this.pendingQueue.findIndex(a => a.txHash === tx.txHash);
+                if (idx2 !== -1) {
+                    this.moveAnimalToProposedByIndex(idx2);
+                } else {
+                    this.playProposedFallbackAnimation(tx);
+                }
+            });
+        } else {
+            this.scheduleProposedArrival(() => this.playProposedFallbackAnimation(tx));
+        }
+    }
+
+    // 私有：按索引把 pending 队列中的动物移动到 proposed 队列
+    private moveAnimalToProposedByIndex(index: number): void {
+        if (index < 0 || index >= this.pendingQueue.length) return;
+        const selectedAnimal = this.pendingQueue[index];
+        this.pendingQueue.splice(index, 1);
+
+        const proposedPosition = this.calculateProposedPosition(
+            selectedAnimal.type,
+        );
+        const speed = this.getAnimalSpeed(selectedAnimal.type);
+        const upwardY = 400;
+        const upDistance = Math.abs(selectedAnimal.sprite.y - upwardY);
+        const upDuration = (upDistance / speed) * 1000;
+
+        this.tweens.add({
+            targets: selectedAnimal.sprite,
+            y: upwardY,
+            duration: upDuration,
+            ease: "Linear",
+            onComplete: () => {
+                selectedAnimal.sprite.setTexture(selectedAnimal.type);
+                selectedAnimal.sprite.setFlipX(false);
+                const leftDistance =
+                    selectedAnimal.sprite.x - proposedPosition.x;
+                const leftDuration = (leftDistance / speed) * 1000;
+                this.tweens.add({
+                    targets: selectedAnimal.sprite,
+                    x: proposedPosition.x,
+                    y: proposedPosition.y,
+                    duration: leftDuration,
+                    ease: "Linear",
+                    onComplete: () => {
+                        if (
+                            this.proposedQueue.length >= MAX_PROPOSED_CAPACITY
+                        ) {
+                            this.tweens.add({
+                                targets: selectedAnimal.sprite,
+                                alpha: 0,
+                                duration: 150,
+                                ease: "Power2",
+                                onComplete: () => selectedAnimal.sprite.destroy(),
+                            });
+                            return;
+                        }
+                        this.proposedQueue.push({
+                            sprite: selectedAnimal.sprite,
+                            type: selectedAnimal.type,
+                            queuePosition: proposedPosition,
+                            randomOffset: selectedAnimal.randomOffset,
+                            txHash: selectedAnimal.txHash,
+                        });
+                        this.sortProposedQueue();
+                        this.arrangeProposedQueue();
+                    },
+                });
+            },
         });
+        this.arrangePendingTriangle();
+    }
+
+    // 私有：未渲染 pending 时的回退动画（叙事一致性）
+    private playProposedFallbackAnimation(tx: EnhancedTransaction): void {
+        this.proposedInFlight++;
+        const type = this.determineAnimalType(tx, 0, null);
+        const randomOffset = this.generateRandomOffset();
+        const stagingPos = this.calculatePendingStagingPosition(randomOffset);
+
+        const ghost = this.add.image(stagingPos.x, stagingPos.y, `${type}_b`);
+        ghost.setDisplaySize(this.ANIMAL_SIZE, this.ANIMAL_SIZE);
+        ghost.setOrigin(0.5, 0.5);
+        ghost.setFlipX(true);
+        ghost.setAlpha(0);
+
+        const speed = this.getAnimalSpeed(type);
+        const upwardY = 400;
+        const upDistance = Math.abs(ghost.y - upwardY);
+        const upDuration = (upDistance / speed) * 1000;
+
+        this.tweens.add({
+            targets: ghost,
+            alpha: 1,
+            duration: 150,
+            ease: "Power2",
+            onComplete: () => {
+                this.tweens.add({
+                    targets: ghost,
+                    y: upwardY,
+                    duration: upDuration,
+                    ease: "Linear",
+                    onComplete: () => {
+                        ghost.setTexture(type);
+                        ghost.setFlipX(false);
+                        const baseProposed =
+                            this.calculateProposedPosition(type);
+                        const targetX = baseProposed.x + randomOffset.x;
+                        const targetY = baseProposed.y + randomOffset.y;
+                        const leftDistance = ghost.x - targetX;
+                        const leftDuration =
+                            (Math.abs(leftDistance) / speed) * 1000;
+                        this.tweens.add({
+                            targets: ghost,
+                            x: targetX,
+                            y: targetY,
+                            duration: leftDuration,
+                            ease: "Linear",
+                            onComplete: () => {
+                                if (
+                                    this.proposedQueue.length >=
+                                    MAX_PROPOSED_CAPACITY
+                                ) {
+                                    this.tweens.add({
+                                        targets: ghost,
+                                        alpha: 0,
+                                        duration: 150,
+                                        ease: "Power2",
+                                        onComplete: () => { this.proposedInFlight = Math.max(0, this.proposedInFlight - 1); ghost.destroy(); },
+                                    });
+                                    return;
+                                }
+                                this.proposedInFlight = Math.max(0, this.proposedInFlight - 1);
+                                this.proposedQueue.push({
+                                    sprite: ghost,
+                                    type,
+                                    queuePosition: { x: targetX, y: targetY },
+                                    randomOffset,
+                                    txHash: tx.txHash,
+                                });
+                                this.sortProposedQueue();
+                                this.arrangeProposedQueue();
+                            },
+                        });
+                    },
+                });
+            },
+        });
+    }
+
+    // 私有：计算一个 pending 边缘的临时起始点（不改变队列）
+    private calculatePendingStagingPosition(randomOffset: {
+        x: number;
+        y: number;
+    }): { x: number; y: number } {
+        const indexForStaging = Math.max(
+            0,
+            Math.min(this.pendingQueue.length, 138 - 1),
+        );
+        const basePosition = this.calculateBasePositionByIndex(indexForStaging);
+        return {
+            x: basePosition.x + randomOffset.x,
+            y: basePosition.y + randomOffset.y,
+        };
+    }
+
+    // 公开：处理 confirmed 事件（从 proposed 队列移除对应交易）
+    public handleTransactionConfirmed(tx: EnhancedTransaction): void {
+        const idx = this.proposedQueue.findIndex(a => a.txHash === tx.txHash);
+        if (idx !== -1) {
+            const animal = this.proposedQueue[idx];
+            // 从 proposed 队列移除
+            this.proposedQueue.splice(idx, 1);
+            
+            // 可选：播放淡出动画后销毁
+            this.tweens.add({
+                targets: animal.sprite,
+                alpha: 0,
+                duration: 300,
+                ease: "Power2",
+                onComplete: () => {
+                    animal.sprite.destroy();
+                },
+            });
+            
+            // 重新排列 proposed 队列
+            this.arrangeProposedQueue();
+            
+            console.log(`✅ Transaction confirmed and removed from proposed queue: ${tx.txHash}`);
+        } else {
+            console.log(`⚠️ Confirmed transaction not found in proposed queue: ${tx.txHash}`);
+        }
     }
 }

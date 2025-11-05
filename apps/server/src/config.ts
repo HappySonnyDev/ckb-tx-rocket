@@ -15,6 +15,8 @@ const configModule = ConfigModule.forRoot({
       .default('testnet'),
     CKB_HTTP_RPC_URL: Joi.string().uri().default('https://testnet.ckb.dev/'),
     CKB_WS_RPC_URL: Joi.string().uri().default('wss://testnet.ckb.dev/ws'),
+
+    LOG_LEVEL: Joi.string().default('error,warn,log'),
   }),
   validationOptions: {
     abortEarly: true,

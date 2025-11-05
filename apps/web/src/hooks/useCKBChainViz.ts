@@ -11,6 +11,8 @@ export interface CKBChainVizState {
   recentBlocks: Block[];
   recentTransactions: EnhancedTransaction[];
   error: string | null;
+  pendingTransactionCount?: number;
+  proposedTransactionCount?: number;
 }
 
 /**
@@ -75,6 +77,8 @@ export function useCKBChainViz() {
         proposedTransactions: snapshotData.proposedTransactions || [],
         confirmedTransactions: snapshotData.confirmedTransactions || [],
         recentBlocks: snapshotData.latestBlock ? [snapshotData.latestBlock] : [],
+        pendingTransactionCount: snapshotData.pendingTransactionCount,
+        proposedTransactionCount: snapshotData.proposedTransactionCount,
       });
     } catch (error) {
       console.error('Failed to connect to CKB ChainViz:', error);

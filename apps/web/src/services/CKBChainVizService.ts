@@ -39,6 +39,8 @@ export interface Snapshot {
         pendingTransactions?: EnhancedTransaction[];
         proposedTransactions?: EnhancedTransaction[];
         confirmedTransactions?: EnhancedTransaction[];
+        pendingTransactionCount?: number;
+        proposedTransactionCount?: number;
     };
     timestamp: string;
 }
