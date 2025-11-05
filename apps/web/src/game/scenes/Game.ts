@@ -102,13 +102,13 @@ export class Game extends Scene {
     
     // Checkpoint queue position (火箭右侧)
     private readonly CHECKPOINT_START_X = 380; // Checkpoint队列起始 X（火箭右侧）
-    private readonly CHECKPOINT_BASE_Y = 410; // Checkpoint队列基准 Y
+    private readonly CHECKPOINT_BASE_Y = 390; // Checkpoint队列基准 Y
     
     private readonly ANIMAL_SIZE = 40; // 动物图片尺寸
     private animationLoopCount = 0; // 动画循环计数器
-    private readonly MAX_ANIMATION_LOOPS = 20; // 最大循环次数
+    private readonly MAX_ANIMATION_LOOPS = 30; // 最大循环次数
     private checkpointMoveCount = 0; // Checkpoint移动计数器
-    private readonly MAX_CHECKPOINT_MOVES = 8; // 最多移动8个动物到Checkpoint
+    private readonly MAX_CHECKPOINT_MOVES = 16; // 最多移动8个动物到Checkpoint
 
     constructor() {
         super("Game");
@@ -1267,10 +1267,10 @@ export class Game extends Scene {
                             randomOffset: selectedAnimal.randomOffset
                         });
                         
-                        // Sort checkpoint queue by priority
+                        // 按优先级排序：兔子优先，猪中间，乌龟最后
                         this.sortCheckpointQueue();
                         
-                        // Rearrange checkpoint queue
+                        // 重新排列队列（竖向填充）
                         this.arrangeCheckpointQueue();
                     }
                 });
@@ -1292,31 +1292,24 @@ export class Game extends Scene {
     
     /**
      * Calculates checkpoint queue position for an animal
-     * Checkpoint queue: arranged in a rectangular formation
-     * Rabbit on left columns, pig in middle columns, turtle on right columns
+     * Checkpoint queue: arranged by arrival order in vertical columns
+     * Fill vertically: column 1 fills top to bottom, then column 2, etc.
      */
     private calculateCheckpointPosition(type: 'rabbit' | 'pig' | 'turtle'): { x: number; y: number } {
-        // Count animals of same type already in checkpoint
-        const sameTypeCount = this.checkpointQueue.filter(a => a.type === type).length;
-        
-        // Horizontal position based on type (column groups)
-        const typeOffset = {
-            'rabbit': 0,      // 最左侧列组
-            'pig': 80,        // 中间列组
-            'turtle': 160     // 右侧列组
-        };
+        // Use current queue length as the position index (arrival order)
+        const queueIndex = this.checkpointQueue.length;
         
         // Rectangular layout parameters
         const colSpacing = 35;  // 列间距
         const rowSpacing = 35;  // 行间距
-        const itemsPerRow = 3;  // 每行3个动物
+        const rowsPerColumn = 2;  // 每列最多2行（竖向填充）
         
-        // Calculate row and column within the type group
-        const row = Math.floor(sameTypeCount / itemsPerRow);
-        const col = sameTypeCount % itemsPerRow;
+        // Calculate column and row based on queue index (vertical filling)
+        const col = Math.floor(queueIndex / rowsPerColumn);
+        const row = queueIndex % rowsPerColumn;
         
         // Calculate position
-        const baseX = this.CHECKPOINT_START_X + typeOffset[type];
+        const baseX = this.CHECKPOINT_START_X;
         const baseY = this.CHECKPOINT_BASE_Y;
         
         const x = baseX + (col * colSpacing);
@@ -1342,37 +1335,34 @@ export class Game extends Scene {
     
     /**
      * Arranges animals in checkpoint queue
-     * Rectangular formation: rabbit columns on left, pig in middle, turtle on right
+     * Order by priority, then arrange in rectangular formation (vertical filling)
      */
     private arrangeCheckpointQueue(): void {
-        // Group by type
-        const groups = {
-            rabbit: this.checkpointQueue.filter(a => a.type === 'rabbit'),
-            pig: this.checkpointQueue.filter(a => a.type === 'pig'),
-            turtle: this.checkpointQueue.filter(a => a.type === 'turtle')
-        };
+        // Save old positions for comparison
+        const oldPositions = new Map<Phaser.GameObjects.Image, { x: number; y: number }>();
+        this.checkpointQueue.forEach(animal => {
+            oldPositions.set(animal.sprite, { ...animal.queuePosition });
+        });
         
         // Layout parameters
         const colSpacing = 35;  // 列间距
         const rowSpacing = 35;  // 行间距
-        const itemsPerRow = 3;  // 每行3个
+        const rowsPerColumn = 2;  // 每列2行（竖向填充）
         
-        // Arrange each group
-        Object.entries(groups).forEach(([type, animals]) => {
-            const typeOffset = {
-                'rabbit': 0,
-                'pig': 80,
-                'turtle': 160
-            };
+        // Arrange animals based on their current sorted index (vertical filling)
+        this.checkpointQueue.forEach((animal, index) => {
+            const col = Math.floor(index / rowsPerColumn);
+            const row = index % rowsPerColumn;
             
-            animals.forEach((animal, index) => {
-                const row = Math.floor(index / itemsPerRow);
-                const col = index % itemsPerRow;
-                
-                const baseX = this.CHECKPOINT_START_X + typeOffset[type as 'rabbit' | 'pig' | 'turtle'];
-                const targetX = baseX + (col * colSpacing) + animal.randomOffset.x;
-                const targetY = this.CHECKPOINT_BASE_Y + (row * rowSpacing) + animal.randomOffset.y;
-                
+            const baseX = this.CHECKPOINT_START_X;
+            const targetX = baseX + (col * colSpacing) + animal.randomOffset.x;
+            const targetY = this.CHECKPOINT_BASE_Y + (row * rowSpacing) + animal.randomOffset.y;
+            
+            // Get old position
+            const oldPos = oldPositions.get(animal.sprite);
+            
+            // Only animate if position actually changed
+            if (!oldPos || Math.abs(oldPos.x - targetX) > 0.1 || Math.abs(oldPos.y - targetY) > 0.1) {
                 // Smooth transition
                 this.tweens.add({
                     targets: animal.sprite,
@@ -1381,9 +1371,9 @@ export class Game extends Scene {
                     duration: 300,
                     ease: 'Power2'
                 });
-                
-                animal.queuePosition = { x: targetX, y: targetY };
-            });
+            }
+            
+            animal.queuePosition = { x: targetX, y: targetY };
         });
     }
 
