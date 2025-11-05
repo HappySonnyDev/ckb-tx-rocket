@@ -51,4 +51,3 @@ export class SnapshotService {
     return feeRate.toFixed(2);
   }
 }
-

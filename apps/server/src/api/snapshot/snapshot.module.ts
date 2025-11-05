@@ -10,4 +10,3 @@ import { DatabaseModule } from '../../core/database/database.module';
   exports: [SnapshotService],
 })
 export class SnapshotModule {}
-

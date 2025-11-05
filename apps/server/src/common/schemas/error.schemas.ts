@@ -1,10 +1,12 @@
 import { z } from 'zod';
 
-export const ErrorDetailsSchema = z.object({
-  parameter: z.string().optional(),
-  provided: z.union([z.string(), z.number()]).optional(),
-  maximum: z.number().optional(),
-}).optional();
+export const ErrorDetailsSchema = z
+  .object({
+    parameter: z.string().optional(),
+    provided: z.union([z.string(), z.number()]).optional(),
+    maximum: z.number().optional(),
+  })
+  .optional();
 
 export const ErrorSchema = z.object({
   code: z.string(),

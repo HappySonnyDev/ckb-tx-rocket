@@ -10,4 +10,3 @@ import { DatabaseModule } from '../../core/database/database.module';
   exports: [TransactionsService],
 })
 export class TransactionsModule {}
-

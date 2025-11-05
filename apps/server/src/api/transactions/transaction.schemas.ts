@@ -54,4 +54,3 @@ export type TransactionDetailsData = z.infer<
 export type TransactionDetailsResponse = z.infer<
   typeof TransactionDetailsResponseSchema
 >;
-

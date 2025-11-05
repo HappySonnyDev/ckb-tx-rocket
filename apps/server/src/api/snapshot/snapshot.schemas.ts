@@ -45,4 +45,3 @@ export type SnapshotProposedTransaction = z.infer<
 >;
 export type SnapshotData = z.infer<typeof SnapshotDataSchema>;
 export type SnapshotResponse = z.infer<typeof SnapshotResponseSchema>;
-
