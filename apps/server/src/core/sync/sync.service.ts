@@ -16,6 +16,8 @@ import {
 @Injectable()
 export class SyncService implements OnModuleInit {
   private readonly logger = new Logger(SyncService.name);
+  private lastBlockTimestamp: number | null = null;
+  private lastBlockNumber: bigint | null = null;
 
   constructor(
     private readonly ckbWebsocketService: CkbWebsocketService,
@@ -40,9 +42,36 @@ export class SyncService implements OnModuleInit {
       await this.ckbWebsocketService.subscribe(
         'new_tip_block',
         async (blockString: string) => {
+          const receiveTime = Date.now();
+
           try {
             const block = JSON.parse(blockString) as Block;
+            const blockNumber = BigInt(block.header.number);
+            const blockTimestamp = parseInt(block.header.timestamp, 16);
+
+            // 计算区块间隔时间
+            if (
+              this.lastBlockTimestamp !== null &&
+              this.lastBlockNumber !== null
+            ) {
+              const timeDiffMs = blockTimestamp - this.lastBlockTimestamp;
+              const timeDiffSec = (timeDiffMs / 1000).toFixed(2);
+              const blockDiff = Number(blockNumber - this.lastBlockNumber);
+
+              this.logger.log(
+                `📦 New Block #${blockNumber} ` +
+                  `| ⏱️  ${timeDiffSec}s since last block ` +
+                  `| 📊 Interval: ${timeDiffMs}ms ` +
+                  `| 🔢 Skipped: ${blockDiff - 1}`,
+              );
+            } else {
+              this.logger.log(`📦 First Block #${blockNumber} received`);
+            }
+
+            this.lastBlockTimestamp = blockTimestamp;
+            this.lastBlockNumber = blockNumber;
             await this.prisma.$transaction(async (prisma) => {
+              const txStartTime = Date.now();
               const savedBlock = await this.blockService.upsertBlock(
                 block,
                 prisma,
@@ -99,8 +128,16 @@ export class SyncService implements OnModuleInit {
               };
               this.eventService.emitBlockFinalized(blockPayload);
 
+              const txEndTime = Date.now();
+              const processingTime = txEndTime - txStartTime;
+              const totalTime = txEndTime - receiveTime;
+
               this.logger.log(
-                `Successfully processed block #${savedBlock.number}`,
+                `✅ Block #${savedBlock.number} processed ` +
+                  `| 💾 DB: ${processingTime}ms ` +
+                  `| 📝 Txs: ${savedBlock.transactionCount} ` +
+                  `| 📋 Proposals: ${savedBlock.proposalsCount} ` +
+                  `| ⚡ Total: ${totalTime}ms`,
               );
             });
           } catch (error) {
@@ -187,19 +224,42 @@ export class SyncService implements OnModuleInit {
         'rejected_transaction',
         async (txEntry: string) => {
           try {
-            const parsedTx = JSON.parse(txEntry) as NewTransactionEntry;
+            // CKB rejected_transaction 返回格式: [txEntry, rejectInfo]
+            const parsed = JSON.parse(txEntry);
+
+            // 检查是否是数组格式
+            let txData: NewTransactionEntry;
+            let rejectReason = 'Transaction rejected by mempool';
+
+            if (Array.isArray(parsed)) {
+              // 新格式: [txEntry, { type: "...", description: "..." }]
+              txData = parsed[0] as NewTransactionEntry;
+              if (parsed[1] && parsed[1].description) {
+                rejectReason = parsed[1].description;
+              }
+            } else {
+              // 旧格式: 直接是 txEntry
+              txData = parsed as NewTransactionEntry;
+            }
+
+            if (!txData || !txData.transaction || !txData.transaction.hash) {
+              this.logger.warn(`Invalid rejected transaction data: ${txEntry}`);
+              return;
+            }
+
             const rejectedPayload: TransactionRejectedPayload = {
-              txHash: parsedTx.transaction.hash,
+              txHash: txData.transaction.hash,
               timestamp: new Date().toISOString(),
-              reason: 'Transaction rejected by mempool',
+              reason: rejectReason,
             };
             this.eventService.emitTransactionRejected(rejectedPayload);
 
             await this.transactionService.deleteTransaction(
-              parsedTx.transaction.hash,
+              txData.transaction.hash,
             );
+
             this.logger.warn(
-              `Rejected Transaction Deleted: ${parsedTx.transaction.hash}`,
+              `❌ Rejected Transaction: ${txData.transaction.hash} | Reason: ${rejectReason}`,
             );
           } catch (error) {
             this.logger.error(

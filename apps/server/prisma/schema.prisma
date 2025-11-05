@@ -85,7 +85,7 @@ model Input {
   previousIndex  BigInt
   since          String
 
-  @@unique([previousTxHash, previousIndex])
+  @@unique([txHash, previousTxHash, previousIndex])
   @@index([txHash])
 }
 

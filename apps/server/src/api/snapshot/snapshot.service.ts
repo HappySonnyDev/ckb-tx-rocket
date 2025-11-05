@@ -25,7 +25,7 @@ export class SnapshotService {
     });
   }
 
-  async getProposedTransactions(limit: number = 50) {
+  async getProposedTransactions(limit: number = 20) {
     return this.prisma.transaction.findMany({
       where: {
         status: 'PROPOSED',
