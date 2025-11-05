@@ -78,32 +78,35 @@ export class Game extends Scene {
     private pow!: Phaser.GameObjects.Image;
     private king_testnet!: Phaser.GameObjects.Image;
     private king_next_testnet!: Phaser.GameObjects.Image;
+    private rocketCloseDoor!: Phaser.GameObjects.Image;
+    private fire!: Phaser.GameObjects.Image;
+    private isRocketLaunching: boolean = false;
 
     // Animal animation system
     private animalQueue: Array<{
         sprite: Phaser.GameObjects.Image;
-        type: 'rabbit' | 'pig' | 'turtle';
+        type: "rabbit" | "pig" | "turtle";
         queuePosition: { x: number; y: number };
         randomOffset: { x: number; y: number }; // 固定的随机偏移，不会改变
     }> = [];
-    
+
     // Checkpoint queue (animals moving from proposed queue to checkpoint)
     private checkpointQueue: Array<{
         sprite: Phaser.GameObjects.Image;
-        type: 'rabbit' | 'pig' | 'turtle';
+        type: "rabbit" | "pig" | "turtle";
         queuePosition: { x: number; y: number };
         randomOffset: { x: number; y: number };
     }> = [];
-    
+
     private readonly MEMPOOL_START_X = 80; // Mempool 出口位置（Mempool右侧）
     private readonly MEMPOOL_Y = 800; // Mempool 中心 Y 坐标（道路中心线）
     private readonly QUEUE_START_X = 930; // 排队区域起始 X（Gate下方左侧）
     private readonly QUEUE_BASE_Y = 580; // 排队基准 Y 坐标（道路中心偏下）
-    
+
     // Checkpoint queue position (火箭右侧)
     private readonly CHECKPOINT_START_X = 380; // Checkpoint队列起始 X（火箭右侧）
     private readonly CHECKPOINT_BASE_Y = 390; // Checkpoint队列基准 Y
-    
+
     private readonly ANIMAL_SIZE = 40; // 动物图片尺寸
     private animationLoopCount = 0; // 动画循环计数器
     private readonly MAX_ANIMATION_LOOPS = 30; // 最大循环次数
@@ -139,10 +142,13 @@ export class Game extends Scene {
         this.load.image("meseum", "meseum.png");
         this.load.image("king_testnet", "king_testnet.png");
         this.load.image("platform_testnet", "platform_testnet.png");
+        this.load.image("platform_open_testnet", "platform_open_testnet.png");
         this.load.image("pow_testnet", "pow_testnet.png");
         this.load.image("rocket_testnet", "rocket_testnet.png");
         this.load.image("tizi_testnet", "tizi_testnet.png");
         this.load.image("king_next_testnet", "king_next_testnet.png");
+        this.load.image("rocket_close_testnet", "rocket_close_testnet.png");
+        this.load.image("fire", "fire.png");
 
         // Load animal sprites for animation
         this.load.svg("rabbit", "rabbit.svg");
@@ -203,9 +209,14 @@ export class Game extends Scene {
 
         // Start animal animation demonstration
         this.startAnimalAnimation();
-        
+
         // Start moving animals to checkpoint (slower process)
         this.startCheckpointAnimation();
+
+        // Start rocket launch animation after some delay
+        this.time.delayedCall(1000, () => {
+            this.launchRocket();
+        });
     }
 
     private renderRocket(): void {
@@ -254,6 +265,29 @@ export class Game extends Scene {
         this.king_next_testnet = this.add.image(1102, 627, "king_next_testnet");
         this.king_next_testnet.setDisplaySize(236, 133);
         this.king_next_testnet.setOrigin(0, 1);
+
+        // Add rocket close door image (initially hidden)
+        if (this.rocketCloseDoor) this.rocketCloseDoor.destroy();
+        this.rocketCloseDoor = this.add.image(
+            153,
+            264 + 279 - 75 - 59,
+            "rocket_close_testnet",
+        );
+        this.rocketCloseDoor.setDisplaySize(116, 332);
+        this.rocketCloseDoor.setOrigin(0, 1);
+        this.rocketCloseDoor.setVisible(false); // Initially hidden
+
+        // Add fire image (initially hidden)
+        if (this.fire) this.fire.destroy();
+        this.fire = this.add.image(
+            153 + 58, // Center under rocket
+            264 + 279 - 75 - 89, // Below rocket
+            "fire",
+        );
+        this.fire.setDisplaySize(78, 94);
+        this.fire.setOrigin(0.5, 0);
+        this.fire.setVisible(false); // Initially hidden
+        this.fire.setAlpha(0);
     }
 
     /**
@@ -677,18 +711,18 @@ export class Game extends Scene {
 
         // 添加门框上的文字
         const gateTextStyle = {
-            fontSize: '18px',
-            fontFamily: 'monospace',
-            color: '#5C4033',
-            fontStyle: 'bold'
+            fontSize: "18px",
+            fontFamily: "monospace",
+            color: "#5C4033",
+            fontStyle: "bold",
         };
 
         // 第一行文字: PROPOSED QUEUE
         this.gateText1 = this.add.text(
             942.5, // x position (gate x + offset)
             360,
-            '↑ PROPOSED QUEUE:93',
-            gateTextStyle
+            "↑ PROPOSED QUEUE:93",
+            gateTextStyle,
         );
         this.gateText1.setOrigin(0.5, 0.5);
 
@@ -696,8 +730,8 @@ export class Game extends Scene {
         this.gateText2 = this.add.text(
             942.5, // x position
             385, // y position
-            '↓ PENDING QUEUE:1,023',
-            gateTextStyle
+            "↓ PENDING QUEUE:1,023",
+            gateTextStyle,
         );
         this.gateText2.setOrigin(0.5, 0.5);
 
@@ -1113,15 +1147,15 @@ export class Game extends Scene {
         }
 
         // Clean up animals
-        this.animalQueue.forEach(animal => {
+        this.animalQueue.forEach((animal) => {
             if (animal.sprite) {
                 animal.sprite.destroy();
             }
         });
         this.animalQueue = [];
-        
+
         // Clean up checkpoint animals
-        this.checkpointQueue.forEach(animal => {
+        this.checkpointQueue.forEach((animal) => {
             if (animal.sprite) {
                 animal.sprite.destroy();
             }
@@ -1136,7 +1170,7 @@ export class Game extends Scene {
     private startAnimalAnimation(): void {
         // Check if we've reached the maximum number of loops
         if (this.animationLoopCount >= this.MAX_ANIMATION_LOOPS) {
-            console.log('动画已完成 5 次循环，停止执行');
+            console.log("动画已完成 5 次循环，停止执行");
             return;
         }
 
@@ -1146,10 +1180,14 @@ export class Game extends Scene {
 
         // Clear existing animals before starting new animation cycle
         // this.clearAnimalQueue();
-        
+
         // Spawn animals in sequence: rabbit -> pig -> turtle
-        const animalTypes: Array<'rabbit' | 'pig' | 'turtle'> = ['rabbit', 'pig', 'turtle'];
-        
+        const animalTypes: Array<"rabbit" | "pig" | "turtle"> = [
+            "rabbit",
+            "pig",
+            "turtle",
+        ];
+
         animalTypes.forEach((type, index) => {
             // Delay each animal spawn by 1 second
             this.time.delayedCall(index * 1000, () => {
@@ -1163,7 +1201,7 @@ export class Game extends Scene {
                 this.startAnimalAnimation();
             });
         } else {
-            console.log('已达到最大循环次数，动画将停止');
+            console.log("已达到最大循环次数，动画将停止");
         }
     }
 
@@ -1172,7 +1210,7 @@ export class Game extends Scene {
      */
     private clearAnimalQueue(): void {
         // Destroy all animal sprites
-        this.animalQueue.forEach(animal => {
+        this.animalQueue.forEach((animal) => {
             if (animal.sprite) {
                 animal.sprite.destroy();
             }
@@ -1180,7 +1218,7 @@ export class Game extends Scene {
         // Clear the queue array
         this.animalQueue = [];
     }
-    
+
     /**
      * Starts the checkpoint animation - moves animals from proposed queue to checkpoint
      * This runs slower than the main animation
@@ -1188,57 +1226,59 @@ export class Game extends Scene {
     private startCheckpointAnimation(): void {
         // Check if we've reached the maximum moves
         if (this.checkpointMoveCount >= this.MAX_CHECKPOINT_MOVES) {
-            console.log('Checkpoint队列已达到8个动物，停止移动');
+            console.log("Checkpoint队列已达到8个动物，停止移动");
             return;
         }
-        
+
         // Wait for some animals to accumulate in the queue
         this.time.delayedCall(3000, () => {
             this.moveAnimalToCheckpoint();
         });
     }
-    
+
     /**
      * Moves a random animal from proposed queue to checkpoint queue
      */
     private moveAnimalToCheckpoint(): void {
         // Check if there are animals in the queue
         if (this.animalQueue.length === 0) {
-            console.log('Proposed队列为空，稍后再试');
+            console.log("Proposed队列为空，稍后再试");
             // Try again later
             this.time.delayedCall(2000, () => {
                 this.moveAnimalToCheckpoint();
             });
             return;
         }
-        
+
         // Randomly select an animal from the queue
         const randomIndex = Phaser.Math.Between(0, this.animalQueue.length - 1);
         const selectedAnimal = this.animalQueue[randomIndex];
-        
+
         // Remove from proposed queue
         this.animalQueue.splice(randomIndex, 1);
-        
+
         // Increment checkpoint counter
         this.checkpointMoveCount++;
-        
+
         // Calculate checkpoint position
-        const checkpointPosition = this.calculateCheckpointPosition(selectedAnimal.type);
-        
+        const checkpointPosition = this.calculateCheckpointPosition(
+            selectedAnimal.type,
+        );
+
         // Get animal speed based on type
         const speed = this.getAnimalSpeed(selectedAnimal.type);
-        
+
         // Calculate intermediate position (move up first)
-        const upwardY = 400
+        const upwardY = 400;
         const upDistance = Math.abs(selectedAnimal.sprite.y - upwardY);
         const upDuration = (upDistance / speed) * 1000; // 使用动物自身的速度
-        
+
         // Step 1: Move upward
         this.tweens.add({
             targets: selectedAnimal.sprite,
             y: upwardY,
             duration: upDuration,
-            ease: 'Linear',
+            ease: "Linear",
             onComplete: () => {
                 // Step 2: Move left and change sprite direction
                 // Switch to facing-left sprite (移除背身图片的_b后缀)
@@ -1246,40 +1286,41 @@ export class Game extends Scene {
                 selectedAnimal.sprite.setTexture(baseTexture);
                 // Face left (头朝左，不需要翻转，因为原始图片头就是朝左的)
                 selectedAnimal.sprite.setFlipX(false);
-                
-                const leftDistance = selectedAnimal.sprite.x - checkpointPosition.x;
+
+                const leftDistance =
+                    selectedAnimal.sprite.x - checkpointPosition.x;
                 const leftDuration = (leftDistance / speed) * 1000; // 使用动物自身的速度
-                
+
                 this.tweens.add({
                     targets: selectedAnimal.sprite,
                     x: checkpointPosition.x,
                     y: checkpointPosition.y,
                     duration: leftDuration,
-                    ease: 'Linear',
+                    ease: "Linear",
                     onComplete: () => {
                         // 到达Checkpoint后保持头朝左的姿态，不再切换图片
-                        
+
                         // Add to checkpoint queue
                         this.checkpointQueue.push({
                             sprite: selectedAnimal.sprite,
                             type: selectedAnimal.type,
                             queuePosition: checkpointPosition,
-                            randomOffset: selectedAnimal.randomOffset
+                            randomOffset: selectedAnimal.randomOffset,
                         });
-                        
+
                         // 按优先级排序：兔子优先，猪中间，乌龟最后
                         this.sortCheckpointQueue();
-                        
+
                         // 重新排列队列（竖向填充）
                         this.arrangeCheckpointQueue();
-                    }
+                    },
                 });
-            }
+            },
         });
-        
+
         // Rearrange remaining animals in proposed queue
         this.arrangeQueueTriangle();
-        
+
         // Schedule next move if haven't reached max
         if (this.checkpointMoveCount < this.MAX_CHECKPOINT_MOVES) {
             // Slower interval: 4-6 seconds
@@ -1289,90 +1330,103 @@ export class Game extends Scene {
             });
         }
     }
-    
+
     /**
      * Calculates checkpoint queue position for an animal
      * Checkpoint queue: arranged by arrival order in vertical columns
      * Fill vertically: column 1 fills top to bottom, then column 2, etc.
      */
-    private calculateCheckpointPosition(type: 'rabbit' | 'pig' | 'turtle'): { x: number; y: number } {
+    private calculateCheckpointPosition(type: "rabbit" | "pig" | "turtle"): {
+        x: number;
+        y: number;
+    } {
         // Use current queue length as the position index (arrival order)
         const queueIndex = this.checkpointQueue.length;
-        
+
         // Rectangular layout parameters
-        const colSpacing = 35;  // 列间距
-        const rowSpacing = 35;  // 行间距
-        const rowsPerColumn = 2;  // 每列最多2行（竖向填充）
-        
+        const colSpacing = 35; // 列间距
+        const rowSpacing = 35; // 行间距
+        const rowsPerColumn = 2; // 每列最多2行（竖向填充）
+
         // Calculate column and row based on queue index (vertical filling)
         const col = Math.floor(queueIndex / rowsPerColumn);
         const row = queueIndex % rowsPerColumn;
-        
+
         // Calculate position
         const baseX = this.CHECKPOINT_START_X;
         const baseY = this.CHECKPOINT_BASE_Y;
-        
-        const x = baseX + (col * colSpacing);
-        const y = baseY + (row * rowSpacing);
-        
+
+        const x = baseX + col * colSpacing;
+        const y = baseY + row * rowSpacing;
+
         return { x, y };
     }
-    
+
     /**
      * Sorts the checkpoint queue by priority
      */
     private sortCheckpointQueue(): void {
         const priorityMap: Record<string, number> = {
-            'rabbit': 1,
-            'pig': 2,
-            'turtle': 3
+            rabbit: 1,
+            pig: 2,
+            turtle: 3,
         };
-        
+
         this.checkpointQueue.sort((a, b) => {
             return priorityMap[a.type] - priorityMap[b.type];
         });
     }
-    
+
     /**
      * Arranges animals in checkpoint queue
      * Order by priority, then arrange in rectangular formation (vertical filling)
      */
     private arrangeCheckpointQueue(): void {
         // Save old positions for comparison
-        const oldPositions = new Map<Phaser.GameObjects.Image, { x: number; y: number }>();
-        this.checkpointQueue.forEach(animal => {
+        const oldPositions = new Map<
+            Phaser.GameObjects.Image,
+            { x: number; y: number }
+        >();
+        this.checkpointQueue.forEach((animal) => {
             oldPositions.set(animal.sprite, { ...animal.queuePosition });
         });
-        
+
         // Layout parameters
-        const colSpacing = 35;  // 列间距
-        const rowSpacing = 35;  // 行间距
-        const rowsPerColumn = 2;  // 每列2行（竖向填充）
-        
+        const colSpacing = 35; // 列间距
+        const rowSpacing = 35; // 行间距
+        const rowsPerColumn = 2; // 每列2行（竖向填充）
+
         // Arrange animals based on their current sorted index (vertical filling)
         this.checkpointQueue.forEach((animal, index) => {
             const col = Math.floor(index / rowsPerColumn);
             const row = index % rowsPerColumn;
-            
+
             const baseX = this.CHECKPOINT_START_X;
-            const targetX = baseX + (col * colSpacing) + animal.randomOffset.x;
-            const targetY = this.CHECKPOINT_BASE_Y + (row * rowSpacing) + animal.randomOffset.y;
-            
+            const targetX = baseX + col * colSpacing + animal.randomOffset.x;
+            const targetY =
+                this.CHECKPOINT_BASE_Y +
+                row * rowSpacing +
+                animal.randomOffset.y;
+
             // Get old position
             const oldPos = oldPositions.get(animal.sprite);
-            
+
             // Only animate if position actually changed
-            if (!oldPos || Math.abs(oldPos.x - targetX) > 0.1 || Math.abs(oldPos.y - targetY) > 0.1) {
+            if (
+                !oldPos ||
+                Math.abs(oldPos.x - targetX) > 0.1 ||
+                Math.abs(oldPos.y - targetY) > 0.1
+            ) {
                 // Smooth transition
                 this.tweens.add({
                     targets: animal.sprite,
                     x: targetX,
                     y: targetY,
                     duration: 300,
-                    ease: 'Power2'
+                    ease: "Power2",
                 });
             }
-            
+
             animal.queuePosition = { x: targetX, y: targetY };
         });
     }
@@ -1381,12 +1435,12 @@ export class Game extends Scene {
      * Spawns a single animal and animates it to queue position
      * @param type - Type of animal to spawn (rabbit, pig, or turtle)
      */
-    private spawnAnimal(type: 'rabbit' | 'pig' | 'turtle'): void {
+    private spawnAnimal(type: "rabbit" | "pig" | "turtle"): void {
         // Create animal sprite at Mempool exit
         const animal = this.add.image(
             this.MEMPOOL_START_X,
             this.MEMPOOL_Y,
-            type // Use running sprite
+            type, // Use running sprite
         );
         animal.setDisplaySize(this.ANIMAL_SIZE, this.ANIMAL_SIZE);
         animal.setOrigin(0.5, 0.5);
@@ -1395,30 +1449,33 @@ export class Game extends Scene {
 
         // Generate fixed random offset for this animal
         const randomOffset = this.generateRandomOffset();
-        
+
         // Temporarily calculate a position as if the animal was already in queue
         // This is just for movement calculation, not affecting existing queue
-        const tempQueue = [...this.animalQueue, {
-            sprite: animal,
-            type: type,
-            queuePosition: { x: 0, y: 0 },
-            randomOffset: randomOffset
-        }];
-        
+        const tempQueue = [
+            ...this.animalQueue,
+            {
+                sprite: animal,
+                type: type,
+                queuePosition: { x: 0, y: 0 },
+                randomOffset: randomOffset,
+            },
+        ];
+
         // Sort temp queue by priority
         const priorityMap: Record<string, number> = {
-            'rabbit': 1,
-            'pig': 2,
-            'turtle': 3
+            rabbit: 1,
+            pig: 2,
+            turtle: 3,
         };
         tempQueue.sort((a, b) => priorityMap[a.type] - priorityMap[b.type]);
-        
+
         // Find where this animal would be in the sorted queue
-        const tempIndex = tempQueue.findIndex(a => a.sprite === animal);
+        const tempIndex = tempQueue.findIndex((a) => a.sprite === animal);
         const basePosition = this.calculateBasePositionByIndex(tempIndex);
         const queuePosition = {
             x: basePosition.x + randomOffset.x,
-            y: basePosition.y + randomOffset.y
+            y: basePosition.y + randomOffset.y,
         };
 
         // Calculate movement duration based on animal speed
@@ -1432,25 +1489,25 @@ export class Game extends Scene {
             x: queuePosition.x,
             y: queuePosition.y,
             duration: duration,
-            ease: 'Linear',
+            ease: "Linear",
             onComplete: () => {
                 // Switch to queue sprite (背身图片)
                 animal.setTexture(`${type}_b`);
-                
+
                 // Add to queue after arrival
                 this.animalQueue.push({
                     sprite: animal,
                     type: type,
                     queuePosition: queuePosition,
-                    randomOffset: randomOffset
+                    randomOffset: randomOffset,
                 });
-                
+
                 // Sort queue by priority
                 this.sortQueueByPriority();
-                
+
                 // Rearrange all animals in triangular formation
                 this.arrangeQueueTriangle();
-            }
+            },
         });
     }
 
@@ -1459,11 +1516,11 @@ export class Game extends Scene {
      */
     private sortQueueByPriority(): void {
         const priorityMap: Record<string, number> = {
-            'rabbit': 1,
-            'pig': 2,
-            'turtle': 3
+            rabbit: 1,
+            pig: 2,
+            turtle: 3,
         };
-        
+
         this.animalQueue.sort((a, b) => {
             return priorityMap[a.type] - priorityMap[b.type];
         });
@@ -1474,11 +1531,14 @@ export class Game extends Scene {
      * @param index - Index in the sorted queue
      * @returns Base position coordinates
      */
-    private calculateBasePositionByIndex(index: number): { x: number; y: number } {
+    private calculateBasePositionByIndex(index: number): {
+        x: number;
+        y: number;
+    } {
         // Base position
         const baseX = this.QUEUE_START_X;
         const baseY = this.QUEUE_BASE_Y;
-        
+
         // Calculate row number: find which row this animal belongs to
         // Row 0: 1 animal (index 0)
         // Row 1: 2 animals (index 1-2)
@@ -1490,21 +1550,21 @@ export class Game extends Scene {
             countSoFar += row + 1;
             row++;
         }
-        
+
         // Column position within the row
         const col = index - countSoFar;
-        
+
         // 更紧凑的间距，允许动物之间有重叠
-        const rowSpacing = 28;  // 垂直间距
-        const colSpacing = 30;  // 横向间距
-        
+        const rowSpacing = 28; // 垂直间距
+        const colSpacing = 30; // 横向间距
+
         // Calculate position with triangular offset (centered)
-        const x = baseX + (col * colSpacing) - (row * colSpacing / 2);
-        const y = baseY + (row * rowSpacing);
+        const x = baseX + col * colSpacing - (row * colSpacing) / 2;
+        const y = baseY + row * rowSpacing;
 
         return { x, y };
     }
-    
+
     /**
      * Generates a random offset for natural positioning
      * @returns Random offset for x and y
@@ -1514,7 +1574,7 @@ export class Game extends Scene {
         // 垂直随机偏移 ±6px
         return {
             x: (Math.random() - 0.5) * 16, // -8 到 +8
-            y: (Math.random() - 0.5) * 12  // -6 到 +6
+            y: (Math.random() - 0.5) * 12, // -6 到 +6
         };
     }
 
@@ -1524,11 +1584,11 @@ export class Game extends Scene {
      * @param type - Animal type
      * @returns Speed in pixels per second
      */
-    private getAnimalSpeed(type: 'rabbit' | 'pig' | 'turtle'): number {
+    private getAnimalSpeed(type: "rabbit" | "pig" | "turtle"): number {
         const speeds = {
-            rabbit: 400,  // Fastest (最快)
-            pig: 300,     // Medium (中速)
-            turtle: 200   // Slowest (最慢)
+            rabbit: 400, // Fastest (最快)
+            pig: 300, // Medium (中速)
+            turtle: 200, // Slowest (最慢)
         };
         return speeds[type];
     }
@@ -1540,8 +1600,11 @@ export class Game extends Scene {
      */
     private arrangeQueueTriangle(): void {
         // Save old positions before rearranging
-        const oldPositions = new Map<Phaser.GameObjects.Image, { x: number; y: number }>();
-        this.animalQueue.forEach(animal => {
+        const oldPositions = new Map<
+            Phaser.GameObjects.Image,
+            { x: number; y: number }
+        >();
+        this.animalQueue.forEach((animal) => {
             oldPositions.set(animal.sprite, { ...animal.queuePosition });
         });
 
@@ -1549,28 +1612,169 @@ export class Game extends Scene {
         this.animalQueue.forEach((animal, index) => {
             // Calculate base position using the index
             const basePosition = this.calculateBasePositionByIndex(index);
-            
+
             // Apply the animal's fixed random offset
             const targetX = basePosition.x + animal.randomOffset.x;
             const targetY = basePosition.y + animal.randomOffset.y;
-            
+
             // Get old position
             const oldPos = oldPositions.get(animal.sprite);
-            
+
             // Only animate if position actually changed
-            if (!oldPos || Math.abs(oldPos.x - targetX) > 0.1 || Math.abs(oldPos.y - targetY) > 0.1) {
+            if (
+                !oldPos ||
+                Math.abs(oldPos.x - targetX) > 0.1 ||
+                Math.abs(oldPos.y - targetY) > 0.1
+            ) {
                 // Smooth transition to new position
                 this.tweens.add({
                     targets: animal.sprite,
                     x: targetX,
                     y: targetY,
                     duration: 300,
-                    ease: 'Power2'
+                    ease: "Power2",
                 });
             }
 
             // Update stored position
             animal.queuePosition = { x: targetX, y: targetY };
+        });
+    }
+
+    /**
+     * Launches the rocket with door closing and liftoff animation
+     */
+    private launchRocket(): void {
+        if (this.isRocketLaunching) {
+            console.log("火箭已在发射中，跳过");
+            return;
+        }
+
+        this.isRocketLaunching = true;
+        console.log("开始火箭发射动画");
+
+        // Step 1: Close the rocket door and change platform
+        this.rocketCloseDoor.setVisible(true);
+        this.rocket.setVisible(false);
+
+        // Change platform to open state
+        this.platform_testnet.setTexture("platform_open_testnet");
+        this.platform_testnet.setDisplaySize(232, 94);
+        this.platform_testnet.setOrigin(0, 1);
+
+        // Hide pow
+        this.pow.setVisible(false);
+
+        // Step 2: After door closes, show fire and start liftoff
+        this.time.delayedCall(1000, () => {
+            // Show and animate fire
+            this.fire.setVisible(true);
+
+            // Fire fade in and flicker animation
+            this.tweens.add({
+                targets: this.fire,
+                alpha: 1,
+                duration: 300,
+                ease: "Power2",
+            });
+
+            // Fire flickering effect
+            this.tweens.add({
+                targets: this.fire,
+                scaleX: { from: 0.9, to: 1.1 },
+                scaleY: { from: 1.1, to: 0.9 },
+                duration: 150,
+                yoyo: true,
+                repeat: -1,
+                ease: "Sine.easeInOut",
+            });
+
+            // Step 3: Rocket slowly lifts off
+            this.time.delayedCall(500, () => {
+                const liftoffDuration = 3000; // 3 seconds for liftoff
+                const rocketStartY = 264 + 279 - 75 - 89; // 火箭初始Y坐标
+                const targetY = -500; // Move rocket off screen
+                
+                // 计算火焰相对于火箭底部的偏移
+                // 火箭锚点在左下角(0,1)，火焰锚点在顶部中心(0.5,0)
+                // 火焰初始Y是火箭底部往上30像素的位置
+                const fireOffsetFromRocketBottom = 30;
+                const fireStartY = this.fire.y; // 当前火焰位置
+                const fireTargetY = targetY + fireOffsetFromRocketBottom;
+
+                // Animate rocket liftoff
+                this.tweens.add({
+                    targets: this.rocketCloseDoor,
+                    y: targetY,
+                    duration: liftoffDuration,
+                    ease: "Power1",
+                    onComplete: () => {
+                        console.log("火箭发射完成");
+                        // Hide fire after rocket is gone
+                        this.fire.setVisible(false);
+                        this.fire.setAlpha(0);
+
+                        // Reset rocket, platform and pow
+                        this.time.delayedCall(2000, () => {
+                            this.resetRocket();
+                        });
+                    },
+                });
+
+                // Animate fire with same duration and easing as rocket
+                this.tweens.add({
+                    targets: this.fire,
+                    y: fireTargetY,
+                    duration: liftoffDuration,
+                    ease: "Power1", // Same easing as rocket
+                });
+
+                // Animate fire intensity during liftoff (separate tween for scale/alpha)
+                this.tweens.add({
+                    targets: this.fire,
+                    scaleX: 1.5,
+                    scaleY: 1.5,
+                    alpha: 0.8,
+                    duration: liftoffDuration,
+                    ease: "Power2",
+                });
+            });
+        });
+    }
+
+    /**
+     * Resets the rocket to its initial state
+     */
+    private resetRocket(): void {
+        // Reset positions
+        const grassBottomEdge = 264 + 279 - 75 - 14;
+        const rocketY = 264 + 279 - 75 - 59;
+
+        this.rocketCloseDoor.setY(rocketY);
+        this.rocketCloseDoor.setVisible(false);
+
+        this.rocket.setY(rocketY);
+        this.rocket.setVisible(true);
+
+        this.fire.setY(rocketY - 30);
+        this.fire.setScale(1);
+        this.fire.setAlpha(0);
+        this.fire.setVisible(false);
+
+        // Reset platform to closed state
+        this.platform_testnet.setTexture("platform_testnet");
+        this.platform_testnet.setDisplaySize(232, 94);
+        this.platform_testnet.setOrigin(0, 1);
+
+        // Show pow again
+        this.pow.setVisible(true);
+
+        this.isRocketLaunching = false;
+        console.log("火箭已重置");
+
+        // Optional: Launch again after some time
+        this.time.delayedCall(10000, () => {
+            this.launchRocket();
         });
     }
 }
