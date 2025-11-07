@@ -4,6 +4,7 @@ import { useCKBChainViz } from './hooks/useCKBChainViz';
 import { chainVizConfig } from './config/chainviz.config';
 import { Game } from './game/scenes/Game';
 import { EventBus } from './game/EventBus';
+import { AboutUsPopup } from './components/AboutUsPopup';
 
 /**
  * Main application component that integrates Phaser game with CKB ChainViz
@@ -13,6 +14,7 @@ function App() {
   const chainViz = useCKBChainViz();
   const [showControls, setShowControls] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false); // Track if already initialized
+  const [showAboutUsPopup, setShowAboutUsPopup] = useState(false);
 
   // 在 App 侧维护门框计数（以 snapshot 初始化，再按事件增量）
   const pendingCountRef = useRef<number>(0);
@@ -115,9 +117,29 @@ function App() {
     };
   }, [isInitialized, phaserRef.current?.scene]);
 
+  // 监听 About Us 菜单点击事件
+  useEffect(() => {
+    const handleAboutMenuClick = (item: 'about' | 'tour') => {
+      console.log(`About menu item clicked: ${item}`);
+      if (item === 'about') {
+        setShowAboutUsPopup(true);
+      }
+      // TODO: Handle 'tour' action
+    };
+
+    EventBus.on('about-menu-clicked', handleAboutMenuClick);
+
+    return () => {
+      EventBus.off('about-menu-clicked', handleAboutMenuClick);
+    };
+  }, []);
+
   return (
     <div id="app">
       <PhaserGame ref={phaserRef} />
+      {showAboutUsPopup && (
+        <AboutUsPopup onClose={() => setShowAboutUsPopup(false)} />
+      )}
     </div>
   );
 }

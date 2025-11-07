@@ -1,0 +1,194 @@
+.block-detail-wrapper {
+  position: absolute;
+  z-index: 2000;
+  font-family: 'Body1', system-ui;
+}
+
+.block-detail-content {
+  display: flex;
+  flex-direction: column;
+  background-color: #FBFAEE;
+  padding: 16px;
+  border: 2px solid #805CAD;
+  width: 360px;
+  max-height: 450px;
+  box-sizing: border-box;
+  gap: 12px;
+}
+
+/* 头部样式 */
+.block-detail-header {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.block-detail-icon {
+  font-size: 32px;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.block-detail-hash-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.block-detail-hash {
+  color: #805CAD;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1.2;
+  word-break: break-all;
+}
+
+.block-detail-height {
+  color: #805CAD;
+  font-size: 12px;
+  font-weight: normal;
+  line-height: 1.2;
+}
+
+/* Tab 切换样式 */
+.block-detail-tabs {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  border-bottom: 1px solid #805CAD;
+}
+
+.block-detail-tab {
+  flex: 1;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  color: #805CAD;
+  font-size: 12px;
+  font-weight: normal;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.2s;
+  font-family: 'Body1', system-ui;
+}
+
+.block-detail-tab:hover {
+  background-color: rgba(128, 92, 173, 0.05);
+}
+
+.block-detail-tab.active {
+  font-weight: bold;
+  border-bottom-color: #805CAD;
+}
+
+/* Tab 内容区域 */
+.block-detail-tab-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 200px;
+  max-height: 320px;
+}
+
+/* 信息列表样式 */
+.block-detail-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.block-detail-info-item {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.info-label {
+  color: #805CAD;
+  font-size: 12px;
+  font-weight: normal;
+  line-height: 1.2;
+}
+
+.info-value {
+  color: #805CAD;
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 1.2;
+  text-align: right;
+}
+
+/* 交易列表样式 */
+.block-detail-tx-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.block-detail-tx-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  background-color: rgba(128, 92, 173, 0.05);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.block-detail-tx-item:hover {
+  background-color: rgba(128, 92, 173, 0.1);
+}
+
+.tx-item-number {
+  color: #805CAD;
+  font-size: 12px;
+  font-weight: bold;
+  min-width: 32px;
+}
+
+.tx-item-hash {
+  color: #805CAD;
+  font-size: 12px;
+  font-weight: normal;
+  flex: 1;
+  word-break: break-all;
+}
+
+.block-detail-empty {
+  color: #805CAD;
+  font-size: 12px;
+  font-weight: normal;
+  text-align: center;
+  padding: 24px;
+  opacity: 0.6;
+}
+
+/* 滚动条样式 */
+.block-detail-tab-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.block-detail-tab-content::-webkit-scrollbar-track {
+  background: rgba(128, 92, 173, 0.1);
+  border-radius: 3px;
+}
+
+.block-detail-tab-content::-webkit-scrollbar-thumb {
+  background: #805CAD;
+  border-radius: 3px;
+}
+
+.block-detail-tab-content::-webkit-scrollbar-thumb:hover {
+  background: #6a4a93;
+}

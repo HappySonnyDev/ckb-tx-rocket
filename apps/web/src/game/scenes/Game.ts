@@ -15,6 +15,8 @@ import { RocketRenderer } from "./renderers/RocketRenderer";
 // UI Managers
 import { UIManager } from "./ui/UIManager";
 import { TooltipManager } from "./ui/TooltipManager";
+import { TransactionDetailManager } from "./ui/TransactionDetailManager";
+import { BlockDetailManager } from "./ui/BlockDetailManager";
 
 // Queue Managers
 import { PendingQueueManager } from "./queues/PendingQueueManager";
@@ -40,6 +42,8 @@ export class Game extends Scene {
     // UI Managers
     private uiManager!: UIManager;
     private tooltipManager!: TooltipManager;
+    private transactionDetailManager!: TransactionDetailManager;
+    private blockDetailManager!: BlockDetailManager;
     
     // Queue Managers
     private pendingQueueManager!: PendingQueueManager;
@@ -123,6 +127,14 @@ export class Game extends Scene {
         // Initialize tooltip manager first (needed by building renderer)
         this.tooltipManager = new TooltipManager();
         this.tooltipManager.createTooltip();
+        
+        // Initialize transaction detail manager
+        this.transactionDetailManager = new TransactionDetailManager();
+        this.transactionDetailManager.createTransactionDetail();
+        
+        // Initialize block detail manager
+        this.blockDetailManager = new BlockDetailManager();
+        this.blockDetailManager.createBlockDetail();
 
         // Initialize renderers
         this.backgroundRenderer = new BackgroundRenderer(this);
@@ -157,6 +169,7 @@ export class Game extends Scene {
             this,
             this.pendingQueueManager,
             this.proposedQueueManager,
+            (animal) => this.setupSingleAnimalClickListener(animal),
         );
         this.rocketAnimator = new RocketAnimator(
             this,
@@ -223,6 +236,7 @@ export class Game extends Scene {
         if (data.pendingTransactions && data.pendingTransactions.length > 0) {
             console.log("🐇 Initializing pending queue...");
             this.pendingQueueManager.initializeFromSnapshot(data.pendingTransactions);
+            this.setupAnimalClickListeners(this.pendingQueueManager.getQueue());
         } else {
             console.log(
                 "⚠️ No pending transactions (data:",
@@ -235,6 +249,7 @@ export class Game extends Scene {
         if (data.proposedTransactions && data.proposedTransactions.length > 0) {
             console.log("🐷 Initializing proposed queue...");
             this.proposedQueueManager.initializeFromSnapshot(data.proposedTransactions);
+            this.setupAnimalClickListeners(this.proposedQueueManager.getQueue());
         } else {
             console.log(
                 "⚠️ No proposed transactions (data:",
@@ -275,24 +290,97 @@ export class Game extends Scene {
     }
 
     /**
-     * Handles rocket click event - logs confirmed transactions
+     * Sets up click listeners for animals in a queue
+     */
+    private setupAnimalClickListeners(queue: AnimalQueueItem[]): void {
+        queue.forEach((animal) => {
+            this.setupSingleAnimalClickListener(animal);
+        });
+    }
+
+    /**
+     * Sets up click listener for a single animal
+     * Public method that can be called when new animals are added to queues
+     */
+    public setupSingleAnimalClickListener(animal: AnimalQueueItem): void {
+        if (animal.sprite && animal.txHash) {
+            animal.sprite.setInteractive({ useHandCursor: true });
+            animal.sprite.on("pointerdown", () => {
+                this.handleAnimalClick(animal);
+            });
+        }
+    }
+
+    /**
+     * Handles animal click event - shows transaction detail popup
+     */
+    private handleAnimalClick(animal: AnimalQueueItem): void {
+        if (!animal.txHash) return;
+
+        console.log(`🐾 Animal clicked: ${animal.type}, txHash: ${animal.txHash}`);
+
+        // Get current screen dimensions for boundary calculation
+        const screenWidth = this.scale.width;
+        const screenHeight = this.scale.height;
+        
+        // Show transaction detail popup (x, y are animal center positions)
+        this.transactionDetailManager.showDetail(
+            {
+                txHash: animal.txHash,
+                animalType: animal.type,
+                category: "Other",
+                fee: "23",
+                status: "Pending",
+                size: "2,038 Bytes",
+                cycles: "4,374,329",
+                timestamp: "2024/12/27 13:03:25 UTC",
+            },
+            animal.sprite.x,
+            animal.sprite.y,
+            screenWidth,
+            screenHeight,
+        );
+    }
+
+    /**
+     * Handles rocket click event - shows block detail popup
      */
     private handleRocketClick(): void {
         console.log("🚀 Rocket clicked!");
-        console.log("📦 Confirmed transactions in rocket:");
-
-        if (this.confirmQueue.length === 0) {
-            console.log("  No confirmed transactions yet.");
-        } else {
-            this.confirmQueue.forEach((animal, index) => {
-                console.log(
-                    `  [${index + 1}] Type: ${animal.type}, TxHash: ${animal.txHash || "N/A"}`,
-                );
-            });
+        
+        if (!this.currentBlock) {
+            console.log("No block data available yet.");
+            return;
         }
-
-        console.log(
-            `Total: ${this.confirmQueue.length} confirmed transaction(s)`,
+        
+        // Get rocket position from renderer
+        const rocketElements = this.rocketRenderer.getRocketElements();
+        const rocketX = rocketElements.rocket.x;
+        const rocketY = rocketElements.rocket.y;
+        
+        // Show block detail popup
+        this.blockDetailManager.showDetail(
+            {
+                blockHash: this.currentBlock.blockHash,
+                blockHeight: this.currentBlock.blockNumber,
+                transactions: this.currentBlock.transactionCount,
+                proposedTransactions: this.currentBlock.proposalsCount,
+                uncleCount: this.currentBlock.unclesCount,
+                timestamp: new Date(parseInt(this.currentBlock.timestamp)).toLocaleString(),
+                confirmedTransactions: this.confirmQueue.map(item => ({
+                    txHash: item.txHash || 'Unknown'
+                })),
+                // Mock data for demonstration
+                occupation: '2,039 Bytes',
+                size: '1,384 Bytes',
+                minerReward: '0.000003038 CKB',
+                difficulty: '4.98 EH',
+                nonce: '0x403B07f4...094d51003',
+            },
+            rocketX,
+            rocketY,
+            this.scale.width,
+            this.scale.height,
         );
     }
 
@@ -486,6 +574,8 @@ export class Game extends Scene {
         // Clean up managers
         if (this.uiManager) this.uiManager.destroy();
         if (this.tooltipManager) this.tooltipManager.destroy();
+        if (this.transactionDetailManager) this.transactionDetailManager.destroy();
+        if (this.blockDetailManager) this.blockDetailManager.destroy();
         if (this.pendingQueueManager) this.pendingQueueManager.destroy();
         if (this.proposedQueueManager) this.proposedQueueManager.destroy();
         if (this.backgroundRenderer) this.backgroundRenderer.destroy();

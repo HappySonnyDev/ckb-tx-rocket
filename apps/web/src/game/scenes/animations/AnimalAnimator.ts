@@ -4,7 +4,7 @@
  */
 
 import { Scene } from "phaser";
-import { AnimalType, GAME_CONSTANTS, Position } from "../types/GameTypes";
+import { AnimalType, GAME_CONSTANTS, Position, AnimalQueueItem } from "../types/GameTypes";
 import { AnimalFactory } from "../utils/AnimalFactory";
 import { PositionCalculator } from "../utils/PositionCalculator";
 import { PendingQueueManager } from "../queues/PendingQueueManager";
@@ -15,6 +15,7 @@ export class AnimalAnimator {
     private scene: Scene;
     private pendingQueue: PendingQueueManager;
     private proposedQueue: ProposedQueueManager;
+    private onAnimalAdded?: (animal: AnimalQueueItem) => void;
     
     private pendingInFlight: number = 0;
     private proposedInFlight: number = 0;
@@ -25,10 +26,12 @@ export class AnimalAnimator {
         scene: Scene,
         pendingQueue: PendingQueueManager,
         proposedQueue: ProposedQueueManager,
+        onAnimalAdded?: (animal: AnimalQueueItem) => void,
     ) {
         this.scene = scene;
         this.pendingQueue = pendingQueue;
         this.proposedQueue = proposedQueue;
+        this.onAnimalAdded = onAnimalAdded;
     }
     
     /**
@@ -99,13 +102,19 @@ export class AnimalAnimator {
                 
                 console.log(`➕ Adding to pending: txHash=${txHash ?? "N/A"}, type=${type}`);
                 // Add to queue
-                this.pendingQueue.add({
+                const queueItem = {
                     sprite: animal,
                     type: type,
                     queuePosition: queuePosition,
                     randomOffset: randomOffset,
                     txHash,
-                });
+                };
+                this.pendingQueue.add(queueItem);
+                
+                // Setup click listener for the new animal
+                if (this.onAnimalAdded) {
+                    this.onAnimalAdded(queueItem);
+                }
                 
                 // Sort and rearrange
                 this.pendingQueue["sortByPriority"]();
@@ -173,16 +182,22 @@ export class AnimalAnimator {
                             return;
                         }
                         
-                        this.proposedQueue.add({
+                        const queueItem = {
                             sprite: selectedAnimal.sprite,
                             type: selectedAnimal.type,
                             queuePosition: proposedPosition,
                             randomOffset: selectedAnimal.randomOffset,
                             txHash: selectedAnimal.txHash,
-                        });
+                        };
+                        this.proposedQueue.add(queueItem);
                         console.log(
                             `➕ Added to proposed: txHash=${selectedAnimal.txHash ?? "N/A"}, type=${selectedAnimal.type}`,
                         );
+                        
+                        // Setup click listener for the animal in new queue
+                        if (this.onAnimalAdded) {
+                            this.onAnimalAdded(queueItem);
+                        }
                         
                         this.proposedQueue["sortByPriority"]();
                         this.proposedQueue.arrangeQueue();
@@ -273,16 +288,22 @@ export class AnimalAnimator {
                                 }
                                 
                                 this.proposedInFlight = Math.max(0, this.proposedInFlight - 1);
-                                this.proposedQueue.add({
+                                const queueItem = {
                                     sprite: ghost,
                                     type,
                                     queuePosition: { x: targetX, y: targetY },
                                     randomOffset,
                                     txHash: tx.txHash,
-                                });
+                                };
+                                this.proposedQueue.add(queueItem);
                                 console.log(
                                     `➕ Fallback added to proposed: txHash=${tx.txHash}, type=${type}`,
                                 );
+                                
+                                // Setup click listener for the new animal
+                                if (this.onAnimalAdded) {
+                                    this.onAnimalAdded(queueItem);
+                                }
                                 
                                 this.proposedQueue["sortByPriority"]();
                                 this.proposedQueue.arrangeQueue();

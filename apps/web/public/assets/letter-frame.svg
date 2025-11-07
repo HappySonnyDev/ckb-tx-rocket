@@ -1,0 +1,19 @@
+<svg width="683" height="904" viewBox="0 0 683 904" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="8" width="667" height="2" fill="#664A3D"/>
+<rect x="8" y="902" width="667" height="2" fill="#664A3D"/>
+<rect y="8" width="2" height="888" fill="#664A3D"/>
+<rect x="2" y="6" width="2" height="2" fill="#664A3D"/>
+<rect x="4" y="4" width="2" height="2" fill="#664A3D"/>
+<rect x="6" y="2" width="2" height="2" fill="#664A3D"/>
+<rect x="6" y="900" width="2" height="2" fill="#664A3D"/>
+<rect x="4" y="898" width="2" height="2" fill="#664A3D"/>
+<rect x="2" y="896" width="2" height="2" fill="#664A3D"/>
+<rect width="2" height="706" transform="matrix(-1 0 0 1 683 8)" fill="#664A3D"/>
+<rect width="2" height="2" transform="matrix(-1 0 0 1 679 4)" fill="#664A3D"/>
+<rect width="2" height="2" transform="matrix(-1 0 0 1 677 2)" fill="#664A3D"/>
+<rect width="2" height="2" transform="matrix(-1 0 0 1 681 6)" fill="#664A3D"/>
+<rect width="2" height="2" transform="matrix(-1 0 0 1 677 900)" fill="#664A3D"/>
+<rect width="2" height="2" transform="matrix(-1 0 0 1 679 898)" fill="#664A3D"/>
+<rect width="2" height="2" transform="matrix(-1 0 0 1 681 896)" fill="#664A3D"/>
+<path d="M674 3V5H676V7H678V9H680V895H678V897H676V899H674V901H9V899H7V897H5V895H3V9H5V7H7V5H9V3H674Z" fill="#F0EBD8" stroke="#B48B79" stroke-width="2"/>
+</svg>
