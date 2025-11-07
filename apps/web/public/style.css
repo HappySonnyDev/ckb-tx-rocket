@@ -52,3 +52,106 @@ body {
         color: rgba(255, 255, 255, 0.3);
     }
 }
+
+/* Launch Banner */
+.launch-banner {
+    position: fixed;
+    top: -400px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 380px;
+    padding: 16px 20px;
+    background: #EED2B9;
+    border: 3px solid #8B7BA8;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    opacity: 0;
+    transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    font-family: 'Press Start 2P', monospace, Arial, sans-serif;
+}
+
+.launch-banner.show {
+    top: 100px;
+    opacity: 1;
+}
+
+.launch-banner-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.launch-banner-rocket {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+    border: 2px solid #8B7BA8;
+    background: #F5E8DC;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+}
+
+.launch-banner-rocket img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.launch-banner-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.launch-banner-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #8B7BA8;
+    margin: 0 0 6px 0;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.launch-banner-timestamp {
+    font-size: 10px;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.launch-banner-tx-info {
+    font-size: 12px;
+    color: #8B7BA8;
+    margin-bottom: 4px;
+    line-height: 1.5;
+}
+
+.launch-banner-miner {
+    font-size: 12px;
+    color: #8B7BA8;
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.launch-banner-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #8B7BA8;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.launch-banner-link:hover {
+    color: #6B5B88;
+    text-decoration: underline;
+}
+
+.launch-banner-link::after {
+    content: '↗';
+    font-size: 12px;
+}

@@ -64,6 +64,9 @@ export class Game extends Scene {
     
     // Confirmed queue (metadata only, no sprites)
     private confirmQueue: AnimalQueueItem[] = [];
+    
+    // Launch banner
+    private launchBanner: HTMLDivElement | null = null;
 
     constructor() {
         super("Game");
@@ -185,6 +188,9 @@ export class Game extends Scene {
         this.uiManager.createNetworkSelector();
         this.uiManager.createFeedbackButton();
         this.uiManager.createAboutUs();
+        
+        // Create launch banner
+        this.createLaunchBanner();
 
         // Listen to canvas clicks to close dropdowns
         this.input.on("pointerdown", () => {
@@ -448,10 +454,82 @@ export class Game extends Scene {
     }
 
     /**
+     * Creates the launch banner DOM element
+     */
+    private createLaunchBanner(): void {
+        this.launchBanner = document.createElement('div');
+        this.launchBanner.className = 'launch-banner';
+        this.launchBanner.innerHTML = `
+            <div class="launch-banner-header">
+                <div class="launch-banner-rocket">
+                    <img src="assets/rocket_testnet.png" alt="Rocket" />
+                </div>
+                <div class="launch-banner-info">
+                    <h3 class="launch-banner-title" id="banner-title">Block #0 launched!</h3>
+                    <div class="launch-banner-timestamp" id="banner-timestamp">2025-04-28 13:38 UTC</div>
+                    <div class="launch-banner-tx-info" id="banner-tx-info">0 lucky transactions made it on board!</div>
+                    <div class="launch-banner-miner" id="banner-miner">Launched by 0x0000...0000</div>
+                    <a href="#" class="launch-banner-link" id="banner-explorer" target="_blank">View on Explorer</a>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(this.launchBanner);
+    }
+    
+    /**
+     * Shows the launch banner with block data
+     */
+    private showLaunchBanner(): void {
+        if (!this.launchBanner || !this.currentBlock) return;
+        
+        // Update banner content with current block data
+        const titleEl = document.getElementById('banner-title');
+        const timestampEl = document.getElementById('banner-timestamp');
+        const txInfoEl = document.getElementById('banner-tx-info');
+        const minerEl = document.getElementById('banner-miner');
+        const explorerEl = document.getElementById('banner-explorer') as HTMLAnchorElement;
+        
+        if (titleEl) {
+            titleEl.textContent = `Block #${this.currentBlock.blockNumber} launched!`;
+        }
+        
+        if (timestampEl) {
+            const date = new Date(parseInt(this.currentBlock.timestamp));
+            const utcString = date.toISOString().replace('T', ' ').substring(0, 16) + ' UTC';
+            timestampEl.textContent = utcString;
+        }
+        
+        if (txInfoEl) {
+            const count = this.currentBlock.transactionCount;
+            txInfoEl.textContent = `${count} lucky transaction${count !== 1 ? 's' : ''} made it on board!`;
+        }
+        
+        if (minerEl) {
+            const minerHash = this.currentBlock.miner || 'Unknown';
+            minerEl.textContent = `Launched by ${minerHash.substring(0, 6)}...${minerHash.substring(minerHash.length - 4)}`;
+        }
+        
+        if (explorerEl) {
+            explorerEl.href = `https://pudge.explorer.nervos.org/block/${this.currentBlock.blockHash}`;
+        }
+        
+        // Show the banner
+        this.launchBanner.classList.add('show');
+        
+        // Hide after 5 seconds
+        setTimeout(() => {
+            if (this.launchBanner) {
+                this.launchBanner.classList.remove('show');
+            }
+        }, 5000);
+    }
+
+    /**
      * Launches the rocket
      */
     public launchRocket(): void {
         this.rocketAnimator.launchRocket();
+        this.showLaunchBanner();
     }
 
     /**
@@ -582,6 +660,12 @@ export class Game extends Scene {
         if (this.roadRenderer) this.roadRenderer.destroy();
         if (this.buildingRenderer) this.buildingRenderer.destroy();
         if (this.rocketRenderer) this.rocketRenderer.destroy();
+        
+        // Clean up launch banner
+        if (this.launchBanner) {
+            this.launchBanner.remove();
+            this.launchBanner = null;
+        }
 
         // Clean up confirmed queue
         this.confirmQueue = [];
