@@ -29,6 +29,23 @@ export abstract class QueueManager {
     }
     
     /**
+     * Debug dump of current queue state (types and txHash)
+     */
+    public debugDump(label: string, limit: number = 20): void {
+        try {
+            console.log(`🐛 [${label}] queueLen=${this.queue.length}`);
+            const items = this.queue.slice(0, Math.max(0, Math.min(limit, this.queue.length)));
+            items.forEach((a, i) => {
+                console.log(
+                    `   [${i}] type=${a.type}, txHash=${a.txHash ?? "N/A"}`,
+                );
+            });
+        } catch (e) {
+            console.warn(`debugDump failed:`, e);
+        }
+    }
+    
+    /**
      * Clears the queue
      */
     public clear(): void {

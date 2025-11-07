@@ -388,26 +388,55 @@ export class Game extends Scene {
      * Handles proposed transaction event
      */
     public handleTransactionProposed(tx: EnhancedTransaction): void {
-        if (this.animalAnimator.getProposedInFlight() >= GAME_CONSTANTS.MAX_CONCURRENT_PROPOSED_ARRIVALS) {
+        console.log(`📨 Proposed event received: txHash=${tx.txHash}`);
+        const inFlight = this.animalAnimator.getProposedInFlight();
+        console.log(
+            `   Proposed in-flight=${inFlight} / max=${GAME_CONSTANTS.MAX_CONCURRENT_PROPOSED_ARRIVALS}`,
+        );
+        if (inFlight >= GAME_CONSTANTS.MAX_CONCURRENT_PROPOSED_ARRIVALS) {
+            console.log(
+                `   Throttled. Rescheduling proposed for txHash=${tx.txHash}`,
+            );
             this.time.delayedCall(GAME_CONSTANTS.ARRIVAL_RETRY_DELAY_MS, () =>
-                this.handleTransactionProposed(tx)
+                this.handleTransactionProposed(tx),
             );
             return;
         }
         
+        const pendingLen = this.pendingQueueManager.getLength();
         const idx = this.pendingQueueManager.findIndexByTxHash(tx.txHash);
+        console.log(
+            `   Initial pending lookup: idx=${idx}, pendingLen=${pendingLen}`,
+        );
+        this.pendingQueueManager.debugDump(`proposed ${tx.txHash} pending snapshot`, 25);
         if (idx !== -1) {
+            console.log(
+                `   Found in pending. Scheduling move for txHash=${tx.txHash}`,
+            );
             this.animalAnimator.scheduleProposedArrival(() => {
+                console.log(
+                    `⏱️ Proposed arrival callback: recheck txHash=${tx.txHash}`,
+                );
                 const idx2 = this.pendingQueueManager.findIndexByTxHash(tx.txHash);
+                console.log(`   Recheck pending idx2=${idx2}`);
                 if (idx2 !== -1) {
+                    console.log(
+                        `✅ Moving existing pending item -> proposed: idx=${idx2}, txHash=${tx.txHash}`,
+                    );
                     this.animalAnimator.moveAnimalToProposed(idx2);
                 } else {
+                    console.log(
+                        `🔁 Not found on recheck. Using fallback animation for txHash=${tx.txHash}`,
+                    );
                     this.animalAnimator.playProposedFallbackAnimation(tx);
                 }
             });
         } else {
+            console.log(
+                `❌ Not in pending. Scheduling fallback for proposed: txHash=${tx.txHash}`,
+            );
             this.animalAnimator.scheduleProposedArrival(() =>
-                this.animalAnimator.playProposedFallbackAnimation(tx)
+                this.animalAnimator.playProposedFallbackAnimation(tx),
             );
         }
     }

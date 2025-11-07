@@ -35,6 +35,7 @@ export class AnimalAnimator {
      * Spawns a single animal and animates it to pending queue position
      */
     public spawnAnimalToPending(type: AnimalType, txHash?: string): void {
+        console.log(`🐾 Spawn to pending: type=${type}, txHash=${txHash ?? "N/A"}`);
         // Create animal sprite at Mempool exit
         const animal = AnimalFactory.createAnimalSprite(
             this.scene,
@@ -51,6 +52,9 @@ export class AnimalAnimator {
         // Calculate target position in pending queue
         const tempQueueLength = this.pendingQueue.getLength();
         const basePosition = PositionCalculator.calculatePendingBasePosition(tempQueueLength);
+        console.log(
+            `   Planned pending target index=${tempQueueLength}, base=(${basePosition.x},${basePosition.y})`,
+        );
         const queuePosition = {
             x: basePosition.x + randomOffset.x,
             y: basePosition.y + randomOffset.y,
@@ -70,9 +74,16 @@ export class AnimalAnimator {
             ease: "Linear",
             onComplete: () => {
                 this.pendingInFlight = Math.max(0, this.pendingInFlight - 1);
+                console.log(
+                    `➡️ Arrived at pending spot: txHash=${txHash ?? "N/A"}, queueLen=${this.pendingQueue.getLength()}`,
+                );
+                console.log(this.pendingQueue,'pendingQueue')
                 
                 // Check capacity
                 if (this.pendingQueue.getLength() >= GAME_CONSTANTS.MAX_PENDING_CAPACITY) {
+                    console.log(
+                        `⚠️ Pending capacity full (${GAME_CONSTANTS.MAX_PENDING_CAPACITY}). Fading out txHash=${txHash ?? "N/A"}`,
+                    );
                     this.scene.tweens.add({
                         targets: animal,
                         alpha: 0,
@@ -86,6 +97,7 @@ export class AnimalAnimator {
                 // Switch to queue sprite
                 animal.setTexture(`${type}_b`);
                 
+                console.log(`➕ Adding to pending: txHash=${txHash ?? "N/A"}, type=${type}`);
                 // Add to queue
                 this.pendingQueue.add({
                     sprite: animal,
@@ -98,6 +110,9 @@ export class AnimalAnimator {
                 // Sort and rearrange
                 this.pendingQueue["sortByPriority"]();
                 this.pendingQueue.arrangeQueue();
+                console.log(
+                    `📐 Pending rearranged; new length=${this.pendingQueue.getLength()}`,
+                );
             },
         });
     }
@@ -107,7 +122,13 @@ export class AnimalAnimator {
      */
     public moveAnimalToProposed(index: number): void {
         const selectedAnimal = this.pendingQueue.removeByIndex(index);
-        if (!selectedAnimal) return;
+        if (!selectedAnimal) {
+            console.log(`❌ moveAnimalToProposed: no animal at index=${index}`);
+            return;
+        }
+        console.log(
+            `🚚 Move pending->proposed: index=${index}, txHash=${selectedAnimal.txHash ?? "N/A"}, type=${selectedAnimal.type}`,
+        );
         
         const proposedPosition = PositionCalculator.calculateProposedPosition(
             this.proposedQueue.getLength(),
@@ -139,6 +160,9 @@ export class AnimalAnimator {
                     ease: "Linear",
                     onComplete: () => {
                         if (this.proposedQueue.getLength() >= GAME_CONSTANTS.MAX_PROPOSED_CAPACITY) {
+                            console.log(
+                                `⚠️ Proposed capacity full (${GAME_CONSTANTS.MAX_PROPOSED_CAPACITY}). Fading out txHash=${selectedAnimal.txHash ?? "N/A"}`,
+                            );
                             this.scene.tweens.add({
                                 targets: selectedAnimal.sprite,
                                 alpha: 0,
@@ -156,6 +180,9 @@ export class AnimalAnimator {
                             randomOffset: selectedAnimal.randomOffset,
                             txHash: selectedAnimal.txHash,
                         });
+                        console.log(
+                            `➕ Added to proposed: txHash=${selectedAnimal.txHash ?? "N/A"}, type=${selectedAnimal.type}`,
+                        );
                         
                         this.proposedQueue["sortByPriority"]();
                         this.proposedQueue.arrangeQueue();
@@ -165,12 +192,16 @@ export class AnimalAnimator {
         });
         
         this.pendingQueue.arrangeQueue();
+        console.log(
+            `📐 Pending rearranged after move; len=${this.pendingQueue.getLength()}`,
+        );
     }
     
     /**
      * Plays fallback animation for proposed transactions not in pending queue
      */
     public playProposedFallbackAnimation(tx: EnhancedTransaction): void {
+        console.log(`🛰️ Proposed fallback start: txHash=${tx.txHash}`);
         this.proposedInFlight++;
         
         const type = AnimalFactory.determineAnimalType(tx, 0, null);
@@ -225,6 +256,9 @@ export class AnimalAnimator {
                             ease: "Linear",
                             onComplete: () => {
                                 if (this.proposedQueue.getLength() >= GAME_CONSTANTS.MAX_PROPOSED_CAPACITY) {
+                                    console.log(
+                                        `⚠️ Proposed capacity full. Fallback fade out: txHash=${tx.txHash}`,
+                                    );
                                     this.scene.tweens.add({
                                         targets: ghost,
                                         alpha: 0,
@@ -246,6 +280,9 @@ export class AnimalAnimator {
                                     randomOffset,
                                     txHash: tx.txHash,
                                 });
+                                console.log(
+                                    `➕ Fallback added to proposed: txHash=${tx.txHash}, type=${type}`,
+                                );
                                 
                                 this.proposedQueue["sortByPriority"]();
                                 this.proposedQueue.arrangeQueue();

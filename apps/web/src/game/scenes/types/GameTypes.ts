@@ -41,7 +41,7 @@ export interface FeeRateThresholds {
  */
 export const GAME_CONSTANTS = {
     // Queue capacity limits
-    MAX_PENDING_CAPACITY: 138,
+    MAX_PENDING_CAPACITY: 135,
     MAX_PROPOSED_CAPACITY: 15,
     MAX_CONCURRENT_PENDING_ARRIVALS: 8,
     MAX_CONCURRENT_PROPOSED_ARRIVALS: 6,
