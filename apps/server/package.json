@@ -22,6 +22,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:deploy": "prisma migrate deploy",
+    "db:clear": "ts-node scripts/clear-database.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

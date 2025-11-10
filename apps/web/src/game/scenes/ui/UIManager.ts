@@ -51,7 +51,7 @@ export class UIManager {
         this.networkSelectorRoot = createRoot(container);
         this.networkSelectorRoot.render(
             createElement(NetworkSelector, {
-                defaultNetwork: "Mainnet",
+                defaultNetwork: "Testnet",
                 onNetworkChange: (network: string) => {
                     if (this.onNetworkChange) {
                         this.onNetworkChange(network);

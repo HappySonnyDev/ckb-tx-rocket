@@ -64,9 +64,6 @@ export class Game extends Scene {
     
     // Confirmed queue (metadata only, no sprites)
     private confirmQueue: AnimalQueueItem[] = [];
-    
-    // Launch banner
-    private launchBanner: HTMLDivElement | null = null;
 
     constructor() {
         super("Game");
@@ -111,6 +108,10 @@ export class Game extends Scene {
         this.load.svg("pig_b", "pig_b.svg");
         this.load.svg("turtle", "turtle.svg");
         this.load.svg("turtle_b", "turtle_b.svg");
+        
+        // Load gate icons
+        this.load.svg("gate-left", "gate-left.svg");
+        this.load.svg("gate-bottom", "gate-bottom.svg");
     }
 
     /**
@@ -148,9 +149,11 @@ export class Game extends Scene {
                 this.tooltipManager.showTooltip(content, x, y, width, height);
             },
         );
-        this.rocketRenderer = new RocketRenderer(this, () => {
-            this.handleRocketClick();
-        });
+        this.rocketRenderer = new RocketRenderer(
+            this,
+            () => this.handleRocketClick(),
+            () => this.handlePowClick()
+        );
 
         // Render scene elements
         this.backgroundRenderer.renderSkyBackground();
@@ -188,9 +191,6 @@ export class Game extends Scene {
         this.uiManager.createNetworkSelector();
         this.uiManager.createFeedbackButton();
         this.uiManager.createAboutUs();
-        
-        // Create launch banner
-        this.createLaunchBanner();
 
         // Listen to canvas clicks to close dropdowns
         this.input.on("pointerdown", () => {
@@ -274,12 +274,17 @@ export class Game extends Scene {
                 data.confirmedTransactions.length,
             );
             this.confirmQueue = data.confirmedTransactions.map((tx, index) => {
-                const animalType = AnimalFactory.determineAnimalType(tx, index, null);
+                const animalType = AnimalFactory.determineAnimalType(tx, index);
                 
                 return {
                     sprite: null as any,
                     type: animalType,
                     txHash: tx.txHash,
+                    txType: tx.txType,
+                    fee: tx.fee,
+                    size: tx.size,
+                    timestamp: tx.timestamp,
+                    status: tx.status,
                     queuePosition: { x: 0, y: 0 },
                     randomOffset: { x: 0, y: 0 },
                 };
@@ -329,17 +334,46 @@ export class Game extends Scene {
         const screenWidth = this.scale.width;
         const screenHeight = this.scale.height;
         
+        // Format timestamp
+        let formattedTimestamp: string | undefined;
+        if (animal.timestamp) {
+            const date = new Date(animal.timestamp);
+            formattedTimestamp = date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+                timeZone: 'UTC'
+            }).replace(/(\/|,)/g, match => match === '/' ? '/' : '') + ' UTC';
+        }
+        
+        // Format status
+        const statusMap: Record<string, string> = {
+            'PENDING': 'Pending',
+            'PROPOSED': 'Proposed',
+            'CONFIRMED': 'Confirmed',
+            'REJECTED': 'Rejected'
+        };
+        const formattedStatus = animal.status ? statusMap[animal.status] || animal.status : undefined;
+        
+        // Format size (add Bytes suffix if not present)
+        const formattedSize = animal.size ? 
+            (animal.size.includes('Bytes') ? animal.size : `${animal.size} Bytes`) : 
+            undefined;
+        
         // Show transaction detail popup (x, y are animal center positions)
         this.transactionDetailManager.showDetail(
             {
                 txHash: animal.txHash,
                 animalType: animal.type,
-                category: "Other",
-                fee: "23",
-                status: "Pending",
-                size: "2,038 Bytes",
-                cycles: "4,374,329",
-                timestamp: "2024/12/27 13:03:25 UTC",
+                category: animal.txType || undefined,
+                fee: animal.fee,
+                status: formattedStatus,
+                size: formattedSize,
+                timestamp: formattedTimestamp,
             },
             animal.sprite.x,
             animal.sprite.y,
@@ -387,6 +421,30 @@ export class Game extends Scene {
             rocketY,
             this.scale.width,
             this.scale.height,
+        );
+    }
+    
+    /**
+     * Handles POW click event - shows POW tooltip
+     */
+    private handlePowClick(): void {
+        console.log("🔥 POW clicked!");
+        
+        // Get POW position from renderer
+        const rocketElements = this.rocketRenderer.getRocketElements();
+        const powX = rocketElements.pow.x;
+        const powY = rocketElements.pow.y;
+        
+        // Show tooltip near POW image
+        this.tooltipManager.showTooltip(
+            {
+                text: "⛽ CKB is powered by PoW (Proof of Work)!\n\nMiners burn real energy to solve puzzles & mint new blocks —\nit's like adding fuel to the rocket so it can launch!",
+                highlightText: "PoW (Proof of Work)",
+            },
+            powX + 60,
+            powY - 146,
+            300,
+            100
         );
     }
 
@@ -454,74 +512,28 @@ export class Game extends Scene {
     }
 
     /**
-     * Creates the launch banner DOM element
+     * Updates the current block data
+     * Called when a new block is finalized
      */
-    private createLaunchBanner(): void {
-        this.launchBanner = document.createElement('div');
-        this.launchBanner.className = 'launch-banner';
-        this.launchBanner.innerHTML = `
-            <div class="launch-banner-header">
-                <div class="launch-banner-rocket">
-                    <img src="assets/rocket_testnet.png" alt="Rocket" />
-                </div>
-                <div class="launch-banner-info">
-                    <h3 class="launch-banner-title" id="banner-title">Block #0 launched!</h3>
-                    <div class="launch-banner-timestamp" id="banner-timestamp">2025-04-28 13:38 UTC</div>
-                    <div class="launch-banner-tx-info" id="banner-tx-info">0 lucky transactions made it on board!</div>
-                    <div class="launch-banner-miner" id="banner-miner">Launched by 0x0000...0000</div>
-                    <a href="#" class="launch-banner-link" id="banner-explorer" target="_blank">View on Explorer</a>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(this.launchBanner);
+    public updateCurrentBlock(block: Block): void {
+        this.currentBlock = block;
+        console.log(`📦 Current block updated to #${block.blockNumber}`);
     }
-    
+
     /**
      * Shows the launch banner with block data
      */
     private showLaunchBanner(): void {
-        if (!this.launchBanner || !this.currentBlock) return;
+        if (!this.currentBlock) return;
         
-        // Update banner content with current block data
-        const titleEl = document.getElementById('banner-title');
-        const timestampEl = document.getElementById('banner-timestamp');
-        const txInfoEl = document.getElementById('banner-tx-info');
-        const minerEl = document.getElementById('banner-miner');
-        const explorerEl = document.getElementById('banner-explorer') as HTMLAnchorElement;
-        
-        if (titleEl) {
-            titleEl.textContent = `Block #${this.currentBlock.blockNumber} launched!`;
-        }
-        
-        if (timestampEl) {
-            const date = new Date(parseInt(this.currentBlock.timestamp));
-            const utcString = date.toISOString().replace('T', ' ').substring(0, 16) + ' UTC';
-            timestampEl.textContent = utcString;
-        }
-        
-        if (txInfoEl) {
-            const count = this.currentBlock.transactionCount;
-            txInfoEl.textContent = `${count} lucky transaction${count !== 1 ? 's' : ''} made it on board!`;
-        }
-        
-        if (minerEl) {
-            const minerHash = this.currentBlock.miner || 'Unknown';
-            minerEl.textContent = `Launched by ${minerHash.substring(0, 6)}...${minerHash.substring(minerHash.length - 4)}`;
-        }
-        
-        if (explorerEl) {
-            explorerEl.href = `https://pudge.explorer.nervos.org/block/${this.currentBlock.blockHash}`;
-        }
-        
-        // Show the banner
-        this.launchBanner.classList.add('show');
-        
-        // Hide after 5 seconds
-        setTimeout(() => {
-            if (this.launchBanner) {
-                this.launchBanner.classList.remove('show');
-            }
-        }, 5000);
+        // Emit event to show React component
+        EventBus.emit('show-launch-banner', {
+            blockNumber: this.currentBlock.blockNumber,
+            timestamp: this.currentBlock.timestamp,
+            transactionCount: this.currentBlock.transactionCount,
+            miner: this.currentBlock.miner || 'Unknown',
+            blockHash: this.currentBlock.blockHash,
+        });
     }
 
     /**
@@ -543,10 +555,10 @@ export class Game extends Scene {
             return;
         }
         
-        const type = AnimalFactory.determineAnimalType(tx, 0, null);
+        const type = AnimalFactory.determineAnimalType(tx, 0);
         this.animalAnimator.schedulePendingArrival(() => {
             this.animalAnimator.incrementPendingInFlight();
-            this.animalAnimator.spawnAnimalToPending(type, tx.txHash);
+            this.animalAnimator.spawnAnimalToPending(type, tx.txHash, tx.txType, tx.fee, tx.size, tx.timestamp, tx.status);
         });
     }
 
@@ -554,7 +566,7 @@ export class Game extends Scene {
      * Handles proposed transaction event
      */
     public handleTransactionProposed(tx: EnhancedTransaction): void {
-        console.log(`📨 Proposed event received: txHash=${tx.txHash}`);
+        console.log(`📨 Proposed event received: txHash=${tx.txHash}, feeRate=${tx.feeRate}, fee=${tx.fee}, size=${tx.size}`);
         const inFlight = this.animalAnimator.getProposedInFlight();
         console.log(
             `   Proposed in-flight=${inFlight} / max=${GAME_CONSTANTS.MAX_CONCURRENT_PROPOSED_ARRIVALS}`,
@@ -660,12 +672,6 @@ export class Game extends Scene {
         if (this.roadRenderer) this.roadRenderer.destroy();
         if (this.buildingRenderer) this.buildingRenderer.destroy();
         if (this.rocketRenderer) this.rocketRenderer.destroy();
-        
-        // Clean up launch banner
-        if (this.launchBanner) {
-            this.launchBanner.remove();
-            this.launchBanner = null;
-        }
 
         // Clean up confirmed queue
         this.confirmQueue = [];

@@ -23,14 +23,10 @@ export class ProposedQueueManager extends QueueManager {
         // Clear existing proposed queue first
         this.clear();
         
-        // Calculate dynamic thresholds
-        const thresholds = AnimalFactory.calculateThresholds(transactions);
-        console.log("Fee rate thresholds (proposed):", thresholds);
-        
         // Create animals for each transaction (cap to MAX_PROPOSED_CAPACITY)
         const toCreate = transactions.slice(0, GAME_CONSTANTS.MAX_PROPOSED_CAPACITY);
         toCreate.forEach((tx, index) => {
-            const animalType = AnimalFactory.determineAnimalType(tx, index, thresholds);
+            const animalType = AnimalFactory.determineAnimalType(tx, index);
             const randomOffset = PositionCalculator.generateRandomOffset();
             const position = PositionCalculator.calculateProposedPosition(
                 this.queue.length,
@@ -58,6 +54,11 @@ export class ProposedQueueManager extends QueueManager {
                 queuePosition: queuePosition,
                 randomOffset: randomOffset,
                 txHash: tx.txHash,
+                txType: tx.txType,
+                fee: tx.fee,
+                size: tx.size,
+                timestamp: tx.timestamp,
+                status: tx.status,
             });
         });
         

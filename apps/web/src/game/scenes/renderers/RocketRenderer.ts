@@ -17,10 +17,12 @@ export class RocketRenderer {
     private fire!: Phaser.GameObjects.Image;
     
     private onRocketClick?: () => void;
+    private onPowClick?: () => void;
     
-    constructor(scene: Scene, onRocketClick?: () => void) {
+    constructor(scene: Scene, onRocketClick?: () => void, onPowClick?: () => void) {
         this.scene = scene;
         this.onRocketClick = onRocketClick;
+        this.onPowClick = onPowClick;
     }
     
     /**
@@ -64,6 +66,12 @@ export class RocketRenderer {
         this.pow = this.scene.add.image(96, 264 + 279 - 75 - 202, "pow_testnet");
         this.pow.setDisplaySize(78, 145);
         this.pow.setOrigin(0, 1);
+        this.pow.setInteractive({ useHandCursor: true });
+        this.pow.on("pointerdown", () => {
+            if (this.onPowClick) {
+                this.onPowClick();
+            }
+        });
         
         // King
         if (this.king) this.king.destroy();

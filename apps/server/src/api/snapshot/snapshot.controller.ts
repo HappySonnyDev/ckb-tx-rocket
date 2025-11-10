@@ -45,6 +45,7 @@ export class SnapshotController {
             fee: tx.fee.toString(),
             feeRate: this.snapshotService.calculateFeeRate(tx.fee, tx.size),
             size: tx.size.toString(),
+            txType: tx.txType,
           })),
           proposedTransactions: proposedTransactions.map((tx) => ({
             txHash: tx.hash,
@@ -52,6 +53,7 @@ export class SnapshotController {
             fee: tx.fee.toString(),
             feeRate: this.snapshotService.calculateFeeRate(tx.fee, tx.size),
             size: tx.size.toString(),
+            txType: tx.txType,
             context: {
               blockNumber: tx.block?.number.toString() || '0',
               blockHash: tx.block?.hash || '',
@@ -63,6 +65,7 @@ export class SnapshotController {
             fee: tx.fee.toString(),
             feeRate: this.snapshotService.calculateFeeRate(tx.fee, tx.size),
             size: tx.size.toString(),
+            txType: tx.txType,
             context: {
               blockNumber: tx.block?.number.toString() || '0',
               blockHash: tx.block?.hash || '',

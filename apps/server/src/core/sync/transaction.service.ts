@@ -2,14 +2,63 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { NewTransactionEntry, Transaction } from '../ckb/ckb.interface';
 import { PrismaService } from '../database/prisma.service';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import { ConfigService } from '@nestjs/config';
 
 type TransactionClient = Prisma.TransactionClient;
 
 @Injectable()
 export class TransactionService {
   private readonly logger = new Logger(TransactionService.name);
+  private systemScripts: any;
+  private networkType: string;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {
+    // 加载 system-scripts.json
+    const systemScriptsPath = join(process.cwd(), 'system-scripts.json');
+    this.systemScripts = JSON.parse(readFileSync(systemScriptsPath, 'utf-8'));
+    this.networkType =
+      this.configService.get<string>('CKB_NETWORK_TYPE') || 'testnet';
+  }
+
+  /**
+   * 根据交易的第一个 cell_dep 的 txHash 识别交易类型
+   */
+  private identifyTransactionType(tx: Transaction): string | null {
+    if (!tx.cell_deps || tx.cell_deps.length === 0) {
+      return null;
+    }
+
+    const firstCellDepTxHash = tx.cell_deps[0].out_point.tx_hash;
+    const networkScripts = this.systemScripts[this.networkType];
+
+    if (!networkScripts) {
+      this.logger.warn(
+        `Network type ${this.networkType} not found in system-scripts.json`,
+      );
+      return null;
+    }
+
+    // 遍历所有脚本类型，查找匹配的 txHash
+    for (const [scriptType, scriptConfig] of Object.entries(networkScripts)) {
+      const config = scriptConfig as any;
+      if (config.script && config.script.cellDeps) {
+        for (const cellDepWrapper of config.script.cellDeps) {
+          if (cellDepWrapper.cellDep && cellDepWrapper.cellDep.outPoint) {
+            if (cellDepWrapper.cellDep.outPoint.txHash === firstCellDepTxHash) {
+              return scriptType;
+            }
+          }
+        }
+      }
+    }
+
+    return null;
+  }
 
   async updateProposedTransactions(
     proposalIds: string[],
@@ -70,6 +119,12 @@ export class TransactionService {
     const tx = txEntry.transaction;
     this.logger.debug(`Processing pending tx ${tx.hash}`);
 
+    // 识别交易类型
+    const txType = this.identifyTransactionType(tx);
+    if (txType) {
+      this.logger.log(`Transaction ${tx.hash} identified as type: ${txType}`);
+    }
+
     const processor = async (prisma: TransactionClient) => {
       const existingTx = await prisma.transaction.findUnique({
         where: { hash: tx.hash },
@@ -85,6 +140,7 @@ export class TransactionService {
         cycles: BigInt(txEntry.cycles),
         version: parseInt(tx.version, 16),
         witnesses: tx.witnesses,
+        txType: txType,
       };
 
       await prisma.transaction.upsert({
@@ -101,6 +157,8 @@ export class TransactionService {
     } else {
       await this.prisma.$transaction(processor);
     }
+
+    return txType;
   }
 
   async processCommittedTx(
@@ -110,6 +168,12 @@ export class TransactionService {
     isCellbase = false,
   ) {
     this.logger.debug(`Processing committed tx ${tx.hash}`);
+
+    // 识别交易类型
+    const txType = this.identifyTransactionType(tx);
+    if (txType) {
+      this.logger.log(`Transaction ${tx.hash} identified as type: ${txType}`);
+    }
 
     const logic = async (prisma: TransactionClient) => {
       const existingTx = await prisma.transaction.findUnique({
@@ -127,6 +191,7 @@ export class TransactionService {
         cycles: existingTx?.cycles ?? BigInt(0),
         version: parseInt(tx.version, 16),
         witnesses: tx.witnesses,
+        txType: txType,
       };
 
       if (existingTx) {
@@ -150,6 +215,8 @@ export class TransactionService {
     } else {
       await this.prisma.$transaction(logic);
     }
+
+    return txType;
   }
 
   private async createTransactionRelations(

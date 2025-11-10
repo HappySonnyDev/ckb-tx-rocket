@@ -13,6 +13,7 @@ export const SnapshotTransactionSchema = z.object({
   fee: z.string(),
   feeRate: z.string(),
   size: z.string(),
+  txType: z.string().nullable().optional(),
 });
 
 export const SnapshotProposedTransactionSchema = z.object({
@@ -21,6 +22,7 @@ export const SnapshotProposedTransactionSchema = z.object({
   fee: z.string(),
   feeRate: z.string(),
   size: z.string(),
+  txType: z.string().nullable().optional(),
   context: z.object({
     blockNumber: z.string(),
     blockHash: z.string(),
@@ -33,6 +35,7 @@ export const SnapshotConfirmedTransactionSchema = z.object({
   fee: z.string(),
   feeRate: z.string(),
   size: z.string(),
+  txType: z.string().nullable().optional(),
   context: z.object({
     blockNumber: z.string(),
     blockHash: z.string(),

@@ -32,9 +32,22 @@ export class SyncService implements OnModuleInit {
     await Promise.all([
       this.subscribeToNewTipBlock(),
       this.subscribeToNewTransaction(),
-      this.subscribeToProposedTransaction(),
-      this.subscribeToRejectedTransaction(),
+      // this.subscribeToProposedTransaction(),
+      // this.subscribeToRejectedTransaction(),
     ]);
+  }
+
+  /**
+   * 计算手续费率 (shannon/byte)
+   */
+  private calculateFeeRate(fee: string, size: string): string {
+    const feeNum = BigInt(fee);
+    const sizeNum = BigInt(size);
+    if (sizeNum === BigInt(0)) {
+      return '0';
+    }
+    const feeRate = Number(feeNum) / Number(sizeNum);
+    return feeRate.toFixed(2);
   }
 
   private async subscribeToNewTipBlock() {
@@ -46,6 +59,7 @@ export class SyncService implements OnModuleInit {
 
           try {
             const block = JSON.parse(blockString) as Block;
+            this.logger.log(block, 'block');
             const blockNumber = BigInt(block.header.number);
             const blockTimestamp = parseInt(block.header.timestamp, 16);
 
@@ -82,9 +96,25 @@ export class SyncService implements OnModuleInit {
                   [proposalHash],
                   prisma,
                 );
+
+                // 查询交易信息以获取 fee 和 size
+                const txData = await prisma.transaction.findUnique({
+                  where: { hash: proposalHash },
+                  select: { fee: true, size: true, txType: true },
+                });
+
                 const proposedPayload: TransactionProposedPayload = {
                   txHash: proposalHash,
                   timestamp: new Date().toISOString(),
+                  fee: txData?.fee.toString(),
+                  feeRate: txData
+                    ? this.calculateFeeRate(
+                        txData.fee.toString(),
+                        txData.size.toString(),
+                      )
+                    : undefined,
+                  size: txData?.size.toString(),
+                  txType: txData?.txType,
                   context: {
                     blockNumber: savedBlock.number.toString(),
                     blockHash: savedBlock.hash,
@@ -94,20 +124,36 @@ export class SyncService implements OnModuleInit {
               }
 
               for (const [i, tx] of block.transactions.entries()) {
-                await this.transactionService.processCommittedTx(
+                const txType = await this.transactionService.processCommittedTx(
                   tx,
                   savedBlock.id,
                   prisma,
                   i === 0,
                 );
+
+                // 查询交易信息以获取 fee 和 size
+                const txData = await prisma.transaction.findUnique({
+                  where: { hash: tx.hash },
+                  select: { fee: true, size: true },
+                });
+
                 const confirmedPayload: TransactionConfirmedPayload = {
                   txHash: tx.hash,
                   timestamp: new Date().toISOString(),
+                  fee: txData?.fee.toString(),
+                  feeRate: txData
+                    ? this.calculateFeeRate(
+                        txData.fee.toString(),
+                        txData.size.toString(),
+                      )
+                    : undefined,
+                  size: txData?.size.toString(),
                   context: {
                     blockNumber: savedBlock.number.toString(),
                     blockHash: savedBlock.hash,
                     txIndexInBlock: i,
                   },
+                  txType: txType,
                 };
                 this.eventService.emitTransactionConfirmed(confirmedPayload);
               }
@@ -161,14 +207,18 @@ export class SyncService implements OnModuleInit {
         async (txEntry: string) => {
           try {
             const parsedTx = JSON.parse(txEntry) as NewTransactionEntry;
-            await this.transactionService.processPendingTx(parsedTx);
+            const txType =
+              await this.transactionService.processPendingTx(parsedTx);
+            this.logger.log(`New Transaction: ${txType}`);
 
             const pendingPayload: TransactionPendingPayload = {
               txHash: parsedTx.transaction.hash,
               timestamp: new Date().toISOString(),
               fee: parsedTx.fee,
+              feeRate: this.calculateFeeRate(parsedTx.fee, parsedTx.size),
               size: parsedTx.size,
               cycles: parsedTx.cycles,
+              txType: txType,
             };
             this.eventService.emitTransactionPending(pendingPayload);
 
@@ -197,6 +247,7 @@ export class SyncService implements OnModuleInit {
           let parsedTx: NewTransactionEntry | null = null;
           try {
             parsedTx = JSON.parse(txEntry) as NewTransactionEntry;
+            this.logger.log(parsedTx, 'parsedTx');
             await this.transactionService.updateProposedTransactions([
               parsedTx.transaction.hash,
             ]);

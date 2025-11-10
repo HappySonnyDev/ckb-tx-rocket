@@ -6,39 +6,35 @@
 import { Scene } from "phaser";
 import {
     AnimalType,
-    FeeRateThresholds,
     ANIMAL_SPEEDS,
     GAME_CONSTANTS,
 } from "../types/GameTypes";
 import { EnhancedTransaction } from "../../../services/CKBChainVizService";
-import {
-    getAnimalTypeByFeeRate,
-    calculateFeeRateThresholds,
-} from "../../../utils/feeRateUtils";
+import { getAnimalTypeByFeeRate } from "../../../utils/feeRateUtils";
 
 export class AnimalFactory {
     /**
      * Determines animal type based on transaction data
      * @param tx - Transaction data
      * @param index - Index in the transaction array (fallback)
-     * @param thresholds - Fee rate thresholds (optional)
      * @returns Animal type
      */
     public static determineAnimalType(
         tx: EnhancedTransaction,
         index: number,
-        thresholds?: FeeRateThresholds | null,
     ): AnimalType {
         // If transaction has feeRate, use it to determine animal type
         if (tx.feeRate) {
             const feeRate = parseFloat(tx.feeRate);
             if (!isNaN(feeRate)) {
-                const animalType = getAnimalTypeByFeeRate(feeRate, thresholds);
+                const animalType = getAnimalTypeByFeeRate(feeRate);
+                console.log(`🎯 Animal type determined: feeRate=${feeRate} -> ${animalType} (tx=${tx.txHash?.substring(0, 10)})`);
                 return animalType as AnimalType;
             }
         }
         
         // Fallback: distribute evenly by index
+        console.log(`⚠️ Using fallback (no feeRate) for tx ${tx.txHash?.substring(0, 10)}, index=${index}`);
         const types: AnimalType[] = ["rabbit", "pig", "turtle"];
         return types[index % 3];
     }
@@ -74,22 +70,5 @@ export class AnimalFactory {
         return ANIMAL_SPEEDS[type];
     }
     
-    /**
-     * Calculates fee rate thresholds from transactions
-     * @param transactions - Array of transactions
-     * @returns Fee rate thresholds
-     */
-    public static calculateThresholds(
-        transactions: EnhancedTransaction[],
-    ): FeeRateThresholds | null {
-        const feeRates = transactions
-            .map((tx) => parseFloat(tx.feeRate || "0"))
-            .filter((rate) => !isNaN(rate));
-        
-        if (feeRates.length === 0) {
-            return null;
-        }
-        
-        return calculateFeeRateThresholds(feeRates);
-    }
+
 }

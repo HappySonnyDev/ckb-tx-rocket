@@ -37,7 +37,7 @@ export class AnimalAnimator {
     /**
      * Spawns a single animal and animates it to pending queue position
      */
-    public spawnAnimalToPending(type: AnimalType, txHash?: string): void {
+    public spawnAnimalToPending(type: AnimalType, txHash?: string, txType?: string | null, fee?: string, size?: string, timestamp?: string, status?: 'PENDING' | 'PROPOSED' | 'CONFIRMED' | 'REJECTED'): void {
         console.log(`🐾 Spawn to pending: type=${type}, txHash=${txHash ?? "N/A"}`);
         // Create animal sprite at Mempool exit
         const animal = AnimalFactory.createAnimalSprite(
@@ -108,6 +108,11 @@ export class AnimalAnimator {
                     queuePosition: queuePosition,
                     randomOffset: randomOffset,
                     txHash,
+                    txType,
+                    fee,
+                    size,
+                    timestamp,
+                    status,
                 };
                 this.pendingQueue.add(queueItem);
                 
@@ -188,6 +193,11 @@ export class AnimalAnimator {
                             queuePosition: proposedPosition,
                             randomOffset: selectedAnimal.randomOffset,
                             txHash: selectedAnimal.txHash,
+                            txType: selectedAnimal.txType,
+                            fee: selectedAnimal.fee,
+                            size: selectedAnimal.size,
+                            timestamp: selectedAnimal.timestamp,
+                            status: selectedAnimal.status,
                         };
                         this.proposedQueue.add(queueItem);
                         console.log(
@@ -219,7 +229,7 @@ export class AnimalAnimator {
         console.log(`🛰️ Proposed fallback start: txHash=${tx.txHash}`);
         this.proposedInFlight++;
         
-        const type = AnimalFactory.determineAnimalType(tx, 0, null);
+        const type = AnimalFactory.determineAnimalType(tx, 0);
         const randomOffset = PositionCalculator.generateRandomOffset();
         const stagingPos = PositionCalculator.calculatePendingStagingPosition(
             this.pendingQueue.getLength(),
@@ -294,6 +304,11 @@ export class AnimalAnimator {
                                     queuePosition: { x: targetX, y: targetY },
                                     randomOffset,
                                     txHash: tx.txHash,
+                                    txType: tx.txType,
+                                    fee: tx.fee,
+                                    size: tx.size,
+                                    timestamp: tx.timestamp,
+                                    status: tx.status,
                                 };
                                 this.proposedQueue.add(queueItem);
                                 console.log(

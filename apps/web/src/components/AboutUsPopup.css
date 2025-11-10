@@ -1,164 +1,156 @@
 .about-us-popup-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-  animation: fadeIn 0.2s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
 }
 
 .about-us-popup-container {
-  position: relative;
-  background-color: #EED2B9;
-  border: 2px solid #4A453C;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  max-width: 580px;
-  width: 90%;
-  max-height: 85vh;
-  animation: slideUp 0.3s ease-out;
-  overflow: hidden;
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+    position: relative;
+    background-color: #f0ebd8;
+    border: 2px solid #664a3d;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    max-width: 700px;
+    width: 90%;
+    max-height: 85vh;
+    overflow: hidden;
 }
 
 .about-us-popup-close {
-  position: absolute;
-  top: 24px;
-  right: 24px;
-  width: 24px;
-  height: 24px;
-  background-color: transparent;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  padding: 0;
-  opacity: 0.7;
-  font-size: 0;
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    width: 24px;
+    height: 24px;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+    opacity: 0.7;
+    font-size: 0;
 }
 
 .about-us-popup-close::before,
 .about-us-popup-close::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 16px;
-  height: 2px;
-  background-color: #4A453C;
-  transform-origin: center;
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 2px;
+    background-color: #664a3d;
+    transform-origin: center;
 }
 
 .about-us-popup-close::before {
-  transform: translate(-50%, -50%) rotate(45deg);
+    transform: translate(-50%, -50%) rotate(45deg);
 }
 
 .about-us-popup-close::after {
-  transform: translate(-50%, -50%) rotate(-45deg);
+    transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .about-us-popup-close:hover {
-  opacity: 1;
+    opacity: 1;
 }
 
 .about-us-popup-close:hover::before,
 .about-us-popup-close:hover::after {
-  background-color: #2A2520;
+    background-color: #2a2520;
 }
 
 .about-us-popup-content {
-  padding: 80px 48px 48px 48px;
-  max-height: 85vh;
-  overflow-y: auto;
-  overflow-x: hidden;
+    padding: 24px 48px 96px 48px;
+    max-height: calc(85vh - 20px);
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .about-us-popup-title {
-  color: #4A453C;
-  font-size: 26px;
-  font-weight: 600;
-  margin: 0 0 28px 0;
-  font-family: system-ui, -apple-system, sans-serif;
-  text-align: left;
-  line-height: 1.3;
+    color: #664a3d;
+    font-size: 32px;
+    font-family:
+        "Jersey25" -apple-system,
+        sans-serif;
+    margin: 0 0 28px 0;
+    text-align: center;
+    line-height: 100%;
+    display: flex;
+    font-weight: 400;
+    align-items: center;
+    justify-content: center;
 }
 
 .about-us-popup-description {
-  color: #4A453C;
-  font-size: 15px;
-  line-height: 1.65;
-  font-family: system-ui, -apple-system, sans-serif;
+    color: #664a3d;
 }
 
 .about-us-popup-description p {
-  margin: 0 0 18px 0;
-  text-align: left;
+    margin: 0 0 18px 0;
+    text-align: left;
+    font-size: 14px;
+    font-family:
+        Inter -apple-system,
+        sans-serif;
 }
 
 .about-us-popup-description h3 {
-  color: #4A453C;
-  font-size: 19px;
-  font-weight: 600;
-  margin: 24px 0 14px 0;
-  text-align: left;
-  line-height: 1.3;
+    color: #664a3d;
+    font-size: 24px;
+    margin: 24px 0 14px 0;
+    text-align: left;
+    font-weight: 400;
+    font-family:
+        "Jersey25" -apple-system,
+        sans-serif;
 }
 
 .about-us-popup-description ul {
-  margin: 0 0 16px 0;
-  padding-left: 24px;
+    margin: 0 0 16px 0;
+    padding-left: 24px;
 }
 
 .about-us-popup-description li {
-  margin-bottom: 8px;
+    margin-bottom: 8px;
 }
 
 .about-us-popup-description h3:first-child {
-  margin-top: 0;
+    margin-top: 0;
 }
 
-.about-us-popup-description strong {
-  font-weight: 600;
-  color: #4A453C;
-}
+
 
 /* 滚动条样式 */
 .about-us-popup-content::-webkit-scrollbar {
-  width: 4px;
+    width: 6px;
+    background: transparent;
 }
 
 .about-us-popup-content::-webkit-scrollbar-track {
-  background: transparent;
+    background: transparent;
+    margin-top: 40px;
+    margin-bottom: 40px;
 }
 
 .about-us-popup-content::-webkit-scrollbar-thumb {
-  background: #4A453C;
-  border-radius: 2px;
+    background: #664a3d;
+    /* border-radius: 2px; */
+    border-top: 40px solid transparent;
+    border-bottom: 40px solid transparent;
+    background-clip: padding-box;
+    max-height: 100px;
+    min-height: 40px;
 }
 
 .about-us-popup-content::-webkit-scrollbar-thumb:hover {
-  background: #5A5548;
+    background: #5a5548;
 }
+

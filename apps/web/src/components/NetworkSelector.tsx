@@ -12,7 +12,7 @@ interface NetworkSelectorProps {
  * Reusable React component that can be used in both regular React context
  * or integrated into Phaser scenes via React Portal
  */
-export function NetworkSelector({ onNetworkChange, defaultNetwork = 'Mainnet' }: NetworkSelectorProps) {
+export function NetworkSelector({ onNetworkChange, defaultNetwork = 'Testnet' }: NetworkSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedNetwork, setSelectedNetwork] = useState(defaultNetwork);
   const containerRef = useRef<HTMLDivElement>(null);

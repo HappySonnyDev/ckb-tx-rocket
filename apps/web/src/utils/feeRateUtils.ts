@@ -1,109 +1,59 @@
 /**
  * 手续费率工具模块
  * 提供手续费率计算、分档、动物映射等功能
+ * 基于实际数据分析的固定档位配置
  */
 
 /**
  * 动物类型枚举
  */
 export enum AnimalType {
-  TURTLE = 'turtle',  // 乌龟 - 低手续费
-  PIG = 'pig',        // 猪 - 中手续费
-  RABBIT = 'rabbit'   // 兔子 - 高手续费
+  TURTLE = 'turtle', // 乌龟 - 低手续费
+  PIG = 'pig', // 猪 - 中手续费
+  RABBIT = 'rabbit', // 兔子 - 高手续费
 }
 
 /**
- * 手续费率分档配置
+ * 手续费率固定档位配置（基于 P33 和 P66 百分位数）
+ * 数据来源：分析了 4340 笔交易的 fee/size 比值
+ * - P33: 3.0197 shannon/byte
+ * - P66: 4.0817 shannon/byte
  */
-export interface FeeRateThresholds {
-  /** 33%分位数 */
-  p33: number;
-  /** 66%分位数 */
-  p66: number;
-}
-
-/**
- * 静态阈值配置（样本不足时使用）
- */
-export const STATIC_THRESHOLDS = {
-  low: 0.5,   // 低档阈值
-  high: 1.5   // 高档阈值
+export const FEE_RATE_TIERS = {
+  /** 乌龟档位最大值（< 此值为乌龟） */
+  TURTLE_MAX: 3.02,
+  /** 猪档位最大值（>= TURTLE_MAX 且 < 此值为猪） */
+  PIG_MAX: 4.08,
+  /** 兔子档位（>= PIG_MAX 为兔子） */
 } as const;
 
 /**
- * 最小样本数量（低于此值使用静态阈值）
- */
-export const MIN_SAMPLE_SIZE = 10;
-
-/**
- * 计算数组的百分位数
- * @param values 数值数组
- * @param percentile 百分位 (0-100)
- * @returns 百分位数值
- */
-export function calculatePercentile(values: number[], percentile: number): number {
-  if (values.length === 0) {
-    return 0;
-  }
-
-  const sorted = [...values].sort((a, b) => a - b);
-  const index = (percentile / 100) * (sorted.length - 1);
-  const lower = Math.floor(index);
-  const upper = Math.ceil(index);
-  const weight = index % 1;
-
-  if (lower === upper) {
-    return sorted[lower];
-  }
-
-  return sorted[lower] * (1 - weight) + sorted[upper] * weight;
-}
-
-/**
- * 计算手续费率的分档阈值
- * @param feeRates 手续费率数组
- * @returns 分档阈值配置，如果样本不足返回 null
- */
-export function calculateFeeRateThresholds(feeRates: number[]): FeeRateThresholds | null {
-  if (feeRates.length < MIN_SAMPLE_SIZE) {
-    return null;
-  }
-
-  const p33 = calculatePercentile(feeRates, 33);
-  const p66 = calculatePercentile(feeRates, 66);
-
-  return { p33, p66 };
-}
-
-/**
- * 根据手续费率获取对应的动物类型
- * @param feeRate 手续费率
- * @param thresholds 分档阈值（可选，不传则使用静态阈值）
+ * 根据手续费率获取对应的动物类型（使用固定档位）
+ * @param feeRate 手续费率 (shannon/byte)
  * @returns 动物类型
  */
-export function getAnimalTypeByFeeRate(
-  feeRate: number,
-  thresholds?: FeeRateThresholds | null
-): AnimalType {
-  // 使用动态阈值
-  if (thresholds) {
-    if (feeRate < thresholds.p33) {
-      return AnimalType.TURTLE;
-    } else if (feeRate < thresholds.p66) {
-      return AnimalType.PIG;
-    } else {
-      return AnimalType.RABBIT;
-    }
-  }
-
-  // 回退到静态阈值
-  if (feeRate < STATIC_THRESHOLDS.low) {
+export function getAnimalTypeByFeeRate(feeRate: number): AnimalType {
+  if (feeRate < FEE_RATE_TIERS.TURTLE_MAX) {
     return AnimalType.TURTLE;
-  } else if (feeRate < STATIC_THRESHOLDS.high) {
+  } else if (feeRate < FEE_RATE_TIERS.PIG_MAX) {
     return AnimalType.PIG;
   } else {
     return AnimalType.RABBIT;
   }
+}
+
+/**
+ * 获取动物类型的档位范围描述
+ * @param animalType 动物类型
+ * @returns 档位范围文本
+ */
+export function getAnimalFeeRateRange(animalType: AnimalType): string {
+  const ranges: Record<AnimalType, string> = {
+    [AnimalType.TURTLE]: `< ${FEE_RATE_TIERS.TURTLE_MAX}`,
+    [AnimalType.PIG]: `${FEE_RATE_TIERS.TURTLE_MAX} ~ ${FEE_RATE_TIERS.PIG_MAX}`,
+    [AnimalType.RABBIT]: `≥ ${FEE_RATE_TIERS.PIG_MAX}`,
+  };
+  return ranges[animalType];
 }
 
 /**
@@ -159,14 +109,13 @@ export function formatFeeRate(feeRate: number, decimals: number = 2): string {
 }
 
 /**
- * 批量处理交易的手续费率分档
- * @param transactions 交易数组（包含feeRate字段）
+ * 批量处理交易的手续费率分档（使用固定档位）
+ * @param transactions 交易数组（包含 feeRate 字段）
  * @returns 分档结果
  */
 export function classifyTransactionsByFeeRate<T extends { feeRate: number }>(
-  transactions: T[]
+  transactions: T[],
 ): {
-  thresholds: FeeRateThresholds | null;
   classified: Map<AnimalType, T[]>;
   stats: {
     total: number;
@@ -175,32 +124,29 @@ export function classifyTransactionsByFeeRate<T extends { feeRate: number }>(
     rabbit: number;
   };
 } {
-  const feeRates = transactions.map(tx => tx.feeRate);
-  const thresholds = calculateFeeRateThresholds(feeRates);
-
   const classified = new Map<AnimalType, T[]>([
     [AnimalType.TURTLE, []],
     [AnimalType.PIG, []],
-    [AnimalType.RABBIT, []]
+    [AnimalType.RABBIT, []],
   ]);
 
   const stats = {
     total: transactions.length,
     turtle: 0,
     pig: 0,
-    rabbit: 0
+    rabbit: 0,
   };
 
-  transactions.forEach(tx => {
-    const animalType = getAnimalTypeByFeeRate(tx.feeRate, thresholds);
+  transactions.forEach((tx) => {
+    const animalType = getAnimalTypeByFeeRate(tx.feeRate);
     classified.get(animalType)!.push(tx);
-    
+
     if (animalType === AnimalType.TURTLE) stats.turtle++;
     else if (animalType === AnimalType.PIG) stats.pig++;
     else if (animalType === AnimalType.RABBIT) stats.rabbit++;
   });
 
-  return { thresholds, classified, stats };
+  return { classified, stats };
 }
 
 /**
@@ -213,9 +159,12 @@ export function getFeeRateStatistics(feeRates: number[]): {
   max: number;
   avg: number;
   median: number;
-  p33: number;
-  p66: number;
   count: number;
+  tierDistribution: {
+    turtle: number;
+    pig: number;
+    rabbit: number;
+  };
 } {
   if (feeRates.length === 0) {
     return {
@@ -223,31 +172,33 @@ export function getFeeRateStatistics(feeRates: number[]): {
       max: 0,
       avg: 0,
       median: 0,
-      p33: 0,
-      p66: 0,
-      count: 0
+      count: 0,
+      tierDistribution: {
+        turtle: 0,
+        pig: 0,
+        rabbit: 0,
+      },
     };
   }
 
   const sorted = [...feeRates].sort((a, b) => a - b);
   const sum = feeRates.reduce((acc, val) => acc + val, 0);
 
+  // 计算档位分布
+  const tierDistribution = {
+    turtle: feeRates.filter((rate) => rate < FEE_RATE_TIERS.TURTLE_MAX).length,
+    pig: feeRates.filter(
+      (rate) => rate >= FEE_RATE_TIERS.TURTLE_MAX && rate < FEE_RATE_TIERS.PIG_MAX,
+    ).length,
+    rabbit: feeRates.filter((rate) => rate >= FEE_RATE_TIERS.PIG_MAX).length,
+  };
+
   return {
     min: sorted[0],
     max: sorted[sorted.length - 1],
     avg: sum / feeRates.length,
-    median: calculatePercentile(feeRates, 50),
-    p33: calculatePercentile(feeRates, 33),
-    p66: calculatePercentile(feeRates, 66),
-    count: feeRates.length
+    median: sorted[Math.floor(sorted.length / 2)],
+    count: feeRates.length,
+    tierDistribution,
   };
-}
-
-/**
- * 判断是否应该使用动态阈值
- * @param sampleSize 样本数量
- * @returns 是否使用动态阈值
- */
-export function shouldUseDynamicThresholds(sampleSize: number): boolean {
-  return sampleSize >= MIN_SAMPLE_SIZE;
 }

@@ -38,6 +38,14 @@ interface TransactionDetailProps {
   onClose?: () => void;
 }
 
+const TxTypeColor={
+  "secp256k1_blake160_sighash_all":"#BFE0EA",
+  "dao":"#EDCFD3",
+  "secp256k1_blake160_multisig_all":"#BFE0EA",
+  "sudt":"#7A5699",
+  "xudt":"#8A5C32"
+}
+
 /**
  * Transaction Detail 交易详情弹框组件
  * 用于显示点击小动物后的交易详细信息
@@ -74,7 +82,7 @@ export function TransactionDetail({ visible, data, x, y, screenWidth, screenHeig
   // 截取交易哈希显示前6位和后6位
   const formatTxHash = (hash: string) => {
     if (hash.length <= 18) return hash;
-    return `${hash.slice(0, 6)}...${hash.slice(-6)}`;
+    return `${hash.slice(0, 10)}...${hash.slice(-10)}`;
   };
 
   // 计算弹框位置,考虑屏幕边界
@@ -158,7 +166,17 @@ export function TransactionDetail({ visible, data, x, y, screenWidth, screenHeig
             <div className="tx-detail-hash">{formatTxHash(data.txHash)}</div>
             {data.category && (
               <div className="tx-detail-category">
-                <div className="category-label">{data.category}</div>
+                <div 
+                  className="category-color-block" 
+                  style={{ 
+                    backgroundColor: data.category in TxTypeColor 
+                      ? TxTypeColor[data.category as keyof typeof TxTypeColor] 
+                      : '#F8F0DC' 
+                  }}
+                ></div>
+                <div className="category-label">
+                  {data.category in TxTypeColor ? data.category : 'Other'}
+                </div>
               </div>
             )}
           </div>

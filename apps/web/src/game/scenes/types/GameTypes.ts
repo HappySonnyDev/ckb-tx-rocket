@@ -18,6 +18,11 @@ export interface AnimalQueueItem {
     queuePosition: { x: number; y: number };
     randomOffset: { x: number; y: number };
     txHash?: string;
+    txType?: string | null;
+    fee?: string;
+    size?: string;
+    timestamp?: string;
+    status?: 'PENDING' | 'PROPOSED' | 'CONFIRMED' | 'REJECTED';
 }
 
 /**
@@ -29,20 +34,12 @@ export interface Position {
 }
 
 /**
- * Fee rate thresholds for animal type determination
- */
-export interface FeeRateThresholds {
-    p33: number;
-    p66: number;
-}
-
-/**
  * Game constants
  */
 export const GAME_CONSTANTS = {
     // Queue capacity limits
     MAX_PENDING_CAPACITY: 135,
-    MAX_PROPOSED_CAPACITY: 15,
+    MAX_PROPOSED_CAPACITY: 44,
     MAX_CONCURRENT_PENDING_ARRIVALS: 8,
     MAX_CONCURRENT_PROPOSED_ARRIVALS: 6,
     

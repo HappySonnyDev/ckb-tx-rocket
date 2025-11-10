@@ -23,14 +23,10 @@ export class PendingQueueManager extends QueueManager {
         // Clear existing queue first
         this.clear();
         
-        // Calculate dynamic thresholds
-        const thresholds = AnimalFactory.calculateThresholds(transactions);
-        console.log("Fee rate thresholds:", thresholds);
-        
         // Create animals for each transaction (cap to MAX_PENDING_CAPACITY)
         const toCreate = transactions.slice(0, GAME_CONSTANTS.MAX_PENDING_CAPACITY);
         toCreate.forEach((tx, index) => {
-            const animalType = AnimalFactory.determineAnimalType(tx, index, thresholds);
+            const animalType = AnimalFactory.determineAnimalType(tx, index);
             const randomOffset = PositionCalculator.generateRandomOffset();
             const basePosition = PositionCalculator.calculatePendingBasePosition(
                 this.queue.length,
@@ -56,6 +52,11 @@ export class PendingQueueManager extends QueueManager {
                 queuePosition: queuePosition,
                 randomOffset: randomOffset,
                 txHash: tx.txHash,
+                txType: tx.txType,
+                fee: tx.fee,
+                size: tx.size,
+                timestamp: tx.timestamp,
+                status: tx.status,
             });
         });
         

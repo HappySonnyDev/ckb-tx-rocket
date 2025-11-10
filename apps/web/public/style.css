@@ -1,9 +1,25 @@
+@font-face {
+    font-family: 'Jersey 25';
+    src: url('/fonts/Jersey25.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Inter';
+    src: url('/fonts/Inter.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+
 body {
     margin: 0;
     padding: 0;
     color: rgba(255, 255, 255, 0.87);
     background-color: #000000; 
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: 'Jersey 25', Arial, Helvetica, sans-serif;
 }
 
 #app {
@@ -62,7 +78,7 @@ body {
     width: 380px;
     padding: 16px 20px;
     background: #EED2B9;
-    border: 3px solid #8B7BA8;
+    border: 3px solid #B77830;
     border-radius: 8px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
     z-index: 10000;
@@ -87,8 +103,8 @@ body {
     width: 80px;
     height: 80px;
     flex-shrink: 0;
-    border: 2px solid #8B7BA8;
-    background: #F5E8DC;
+    border: 2px solid #B77830;
+    background: #FBFAEE;
     border-radius: 4px;
     display: flex;
     align-items: center;
@@ -110,7 +126,7 @@ body {
 .launch-banner-title {
     font-size: 16px;
     font-weight: bold;
-    color: #8B7BA8;
+    color: #B77830;
     margin: 0 0 6px 0;
     line-height: 1.4;
     word-wrap: break-word;
@@ -124,14 +140,14 @@ body {
 
 .launch-banner-tx-info {
     font-size: 12px;
-    color: #8B7BA8;
+    color: #B77830;
     margin-bottom: 4px;
     line-height: 1.5;
 }
 
 .launch-banner-miner {
     font-size: 12px;
-    color: #8B7BA8;
+    color: #B77830;
     margin-bottom: 8px;
     line-height: 1.5;
 }
@@ -141,7 +157,7 @@ body {
     align-items: center;
     gap: 4px;
     font-size: 11px;
-    color: #8B7BA8;
+    color: #B77830;
     text-decoration: none;
     transition: all 0.3s;
 }

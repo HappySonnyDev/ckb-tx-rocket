@@ -1,10 +1,12 @@
 .tx-detail-wrapper {
   position: absolute;
   z-index: 2000;
-  font-family: 'Body1', system-ui;
+  font-family: 'Jersey25' system-ui;
 }
 
 .tx-detail-content {
+    font-size: 14px;
+    line-height: 100%;
   display: flex;
   flex-direction: column;
   background-color: #FBFAEE;
@@ -20,6 +22,7 @@
   display: flex;
   flex-direction: row;
   align-items: flex-start;
+  font-size: 24px;
   gap: 12px;
 }
 
@@ -30,8 +33,11 @@
 }
 
 .tx-detail-icon-img {
-  width: 40px;
-  height: 40px;
+  width: 56px;
+    border: 2px solid #807353;
+    padding: 4px;
+  height: 56px;
+  box-sizing: border-box;
   object-fit: contain;
   flex-shrink: 0;
 }
@@ -45,9 +51,9 @@
 
 .tx-detail-hash {
   color: #805CAD;
-  font-size: 16px;
-  font-weight: bold;
-  line-height: 1.2;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 100%;
   word-break: break-all;
 }
 
@@ -55,15 +61,22 @@
   display: flex;
   flex-direction: row;
   align-items: center;
+  gap: 4px;
+}
+
+.category-color-block {
+  width: 24px;
+  height: 12px;
+  background-color: #B29779;
+  border: 1px solid #807353;
+  flex-shrink: 0;
 }
 
 .category-label {
-  background-color: #E8E8E8;
-  color: #666666;
-  font-size: 10px;
-  font-weight: bold;
-  padding: 2px 8px;
-  border-radius: 2px;
+  color: #807353;
+  font-size: 14px;
+
+  line-height: 100%;
 }
 
 /* 信息列表样式 */
@@ -74,23 +87,24 @@
 }
 
 .tx-detail-info-item {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 120px 1fr;
   align-items: center;
+  gap: 32px;
 }
 
 .info-label {
   color: #805CAD;
   font-size: 12px;
-  font-weight: normal;
-  line-height: 1.2;
+  font-weight: 400;
+  line-height: 100%;
+  justify-self: start;
 }
 
 .info-value {
   color: #805CAD;
   font-size: 12px;
-  font-weight: bold;
-  line-height: 1.2;
-  text-align: right;
+  font-weight: 400;
+  line-height: 100%;
+  justify-self: start;
 }

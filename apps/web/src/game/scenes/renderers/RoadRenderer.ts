@@ -19,6 +19,8 @@ export class RoadRenderer {
     private gate!: Phaser.GameObjects.Image;
     private gateText1!: Phaser.GameObjects.Text;
     private gateText2!: Phaser.GameObjects.Text;
+    private gateIcon1!: Phaser.GameObjects.Image;
+    private gateIcon2!: Phaser.GameObjects.Image;
     
     private fenceLeft!: Phaser.GameObjects.TileSprite;
     private fenceRight!: Phaser.GameObjects.TileSprite;
@@ -119,34 +121,67 @@ export class RoadRenderer {
         if (this.gate) this.gate.destroy();
         if (this.gateText1) this.gateText1.destroy();
         if (this.gateText2) this.gateText2.destroy();
+        if (this.gateIcon1) this.gateIcon1.destroy();
+        if (this.gateIcon2) this.gateIcon2.destroy();
         if (this.fenceLeft) this.fenceLeft.destroy();
         if (this.fenceRight) this.fenceRight.destroy();
         
         this.gate = this.scene.add.image(690, roadBottomEdge, "gate");
         this.gate.setOrigin(0, 1);
+        this.gate.setDepth(100); // 设置较高深度，使 Gate 在动物之上
         
         const gateTextStyle = {
-            fontSize: "18px",
-            fontFamily: "monospace",
-            color: "#5C4033",
-            fontStyle: "bold",
+            fontSize: "24px",
+            fontFamily: "'Jersey 25', monospace",
+            color: "#664A3D",
+            fontStyle: "400",
         };
         
+        // 第一行: gate-left.svg + PROPOSED QUEUE:93
+        const text1X = 942.5;
+        const text1Y = 360;
+        const iconSize = 18;
+        const iconTextGap = 8;
+        
+        this.gateIcon1 = this.scene.add.image(
+            text1X - 100,
+            text1Y,
+            "gate-left"
+        );
+        this.gateIcon1.setOrigin(0.5, 0.5);
+        this.gateIcon1.setDisplaySize(iconSize, iconSize);
+        this.gateIcon1.setDepth(100); // 与 Gate 同层
+        
         this.gateText1 = this.scene.add.text(
-            942.5,
-            360,
-            "↑ PROPOSED QUEUE:93",
+            text1X - 150 + iconSize / 2 + iconTextGap+50,
+            text1Y,
+            "PROPOSED QUEUE:0",
             gateTextStyle,
         );
-        this.gateText1.setOrigin(0.5, 0.5);
+        this.gateText1.setOrigin(0, 0.5);
+        this.gateText1.setDepth(100); // 与 Gate 同层
+        
+        // 第二行: gate-bottom.svg + PENDING QUEUE:1,023
+        const text2X = 942.5;
+        const text2Y = 385;
+        
+        this.gateIcon2 = this.scene.add.image(
+            text2X - 100,
+            text2Y,
+            "gate-bottom"
+        );
+        this.gateIcon2.setOrigin(0.5, 0.5);
+        this.gateIcon2.setDisplaySize(iconSize, iconSize);
+        this.gateIcon2.setDepth(100); // 与 Gate 同层
         
         this.gateText2 = this.scene.add.text(
-            942.5,
-            385,
-            "↓ PENDING QUEUE:1,023",
+            text2X - 150 + iconSize / 2 + iconTextGap + 50,
+            text2Y,
+            "PENDING QUEUE:0",
             gateTextStyle,
         );
-        this.gateText2.setOrigin(0.5, 0.5);
+        this.gateText2.setOrigin(0, 0.5);
+        this.gateText2.setDepth(100); // 与 Gate 同层
         
         const fenceWidth = 690;
         const fenceHeight = 75;
@@ -159,6 +194,7 @@ export class RoadRenderer {
             "fence-left",
         );
         this.fenceLeft.setOrigin(0, 1);
+        this.fenceLeft.setDepth(100); // 与 Gate 同层
         
         this.fenceRight = this.scene.add.tileSprite(
             1200,
@@ -168,6 +204,7 @@ export class RoadRenderer {
             "fence-right",
         );
         this.fenceRight.setOrigin(0, 1);
+        this.fenceRight.setDepth(100); // 与 Gate 同层
     }
     
     /**
@@ -203,10 +240,10 @@ export class RoadRenderer {
      */
     public setGateCounts(pending: number, proposed: number): void {
         if (this.gateText1) {
-            this.gateText1.setText(`↑ PROPOSED QUEUE:${proposed}`);
+            this.gateText1.setText(`PROPOSED QUEUE:${proposed}`);
         }
         if (this.gateText2) {
-            this.gateText2.setText(`↓ PENDING QUEUE:${pending}`);
+            this.gateText2.setText(`PENDING QUEUE:${pending}`);
         }
     }
     
@@ -223,6 +260,8 @@ export class RoadRenderer {
         if (this.gate) this.gate.destroy();
         if (this.gateText1) this.gateText1.destroy();
         if (this.gateText2) this.gateText2.destroy();
+        if (this.gateIcon1) this.gateIcon1.destroy();
+        if (this.gateIcon2) this.gateIcon2.destroy();
         if (this.fenceLeft) this.fenceLeft.destroy();
         if (this.fenceRight) this.fenceRight.destroy();
         if (this.grassBottomBorderLeft) this.grassBottomBorderLeft.destroy();

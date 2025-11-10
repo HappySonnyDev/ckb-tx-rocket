@@ -46,6 +46,7 @@ model Transaction {
   cycles     BigInt
   version    Int
   witnesses  Json
+  txType     String?    // Transaction type based on cell_deps
   cellDeps   CellDep[]
   headerDeps HeaderDep[]
   inputs     Input[]

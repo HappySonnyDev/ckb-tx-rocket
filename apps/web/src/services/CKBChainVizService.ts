@@ -22,6 +22,7 @@ export interface Transaction {
     fee?: string;
     feeRate?: string;
     size?: string;
+    txType?: string | null;
     context?: {
         blockNumber?: string;
         blockHash?: string;

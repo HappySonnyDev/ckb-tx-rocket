@@ -11,6 +11,7 @@ interface FeedbackButtonProps {
 export function FeedbackButton({ onClick }: FeedbackButtonProps) {
   const handleClick = () => {
     console.log('Feedback button clicked');
+    window.open('https://github.com/cryptape/ckb-tx-rocket', '_blank');
     onClick?.();
   };
 

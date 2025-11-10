@@ -5,6 +5,7 @@ import { chainVizConfig } from './config/chainviz.config';
 import { Game } from './game/scenes/Game';
 import { EventBus } from './game/EventBus';
 import { AboutUsPopup } from './components/AboutUsPopup';
+import { LaunchBanner } from './components/LaunchBanner';
 
 /**
  * Main application component that integrates Phaser game with CKB ChainViz
@@ -15,6 +16,14 @@ function App() {
   const [showControls, setShowControls] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false); // Track if already initialized
   const [showAboutUsPopup, setShowAboutUsPopup] = useState(false);
+  const [launchBannerData, setLaunchBannerData] = useState<{
+    blockNumber: number;
+    timestamp: string;
+    transactionCount: number;
+    miner: string;
+    blockHash: string;
+  } | null>(null);
+  const [showLaunchBanner, setShowLaunchBanner] = useState(false);
 
   // 在 App 侧维护门框计数（以 snapshot 初始化，再按事件增量）
   const pendingCountRef = useRef<number>(0);
@@ -97,8 +106,13 @@ function App() {
     };
 
     const onBlockFinalized = (block: any) => {
-      // block.finalized 事件发生时，触发火箭发射动画
+      // block.finalized 事件发生时，先更新区块数据，再触发火箭发射动画
       console.log(`🚀 Block finalized: #${block.blockNumber}, 准备发射火箭...`);
+      // 更新 Game 场景的当前区块数据
+      if (typeof gameScene.updateCurrentBlock === 'function') {
+        gameScene.updateCurrentBlock(block);
+      }
+      // 触发火箭发射动画
       if (typeof gameScene.launchRocket === 'function') {
         gameScene.launchRocket();
       }
@@ -116,6 +130,21 @@ function App() {
       EventBus.off('block-finalized', onBlockFinalized);
     };
   }, [isInitialized, phaserRef.current?.scene]);
+
+  // 监听 Launch Banner 显示事件
+  useEffect(() => {
+    const handleShowLaunchBanner = (blockData: any) => {
+      console.log('📢 Launch banner event received:', blockData);
+      setLaunchBannerData(blockData);
+      setShowLaunchBanner(true);
+    };
+
+    EventBus.on('show-launch-banner', handleShowLaunchBanner);
+
+    return () => {
+      EventBus.off('show-launch-banner', handleShowLaunchBanner);
+    };
+  }, []);
 
   // 监听 About Us 菜单点击事件
   useEffect(() => {
@@ -140,6 +169,11 @@ function App() {
       {showAboutUsPopup && (
         <AboutUsPopup onClose={() => setShowAboutUsPopup(false)} />
       )}
+      <LaunchBanner 
+        blockData={launchBannerData}
+        show={showLaunchBanner}
+        onHide={() => setShowLaunchBanner(false)}
+      />
     </div>
   );
 }

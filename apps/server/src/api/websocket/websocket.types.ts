@@ -35,13 +35,19 @@ export interface TransactionPendingPayload {
   txHash: string;
   timestamp: string;
   fee: string;
+  feeRate: string;
   size: string;
   cycles: string;
+  txType?: string | null; // 交易类型
 }
 
 export interface TransactionProposedPayload {
   txHash: string;
   timestamp: string;
+  fee?: string;
+  feeRate?: string;
+  size?: string;
+  txType?: string | null;
   context: {
     blockNumber: string;
     blockHash: string;
@@ -51,11 +57,15 @@ export interface TransactionProposedPayload {
 export interface TransactionConfirmedPayload {
   txHash: string;
   timestamp: string;
+  fee?: string;
+  feeRate?: string;
+  size?: string;
   context: {
     blockNumber: string;
     blockHash: string;
     txIndexInBlock: number;
   };
+  txType?: string | null; // 交易类型
 }
 
 export interface TransactionRejectedPayload {

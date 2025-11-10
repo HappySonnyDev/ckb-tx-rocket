@@ -50,7 +50,7 @@ export function AboutUsPopup({ onClose }: AboutUsPopupProps) {
       <div ref={containerRef} className="about-us-popup-container">
         {/* 关闭按钮 */}
         <button className="about-us-popup-close" onClick={onClose}>
-          ×
+          <img src="/assets/close.svg" alt="Close" />
         </button>
 
         {/* 弹窗内容 */}
