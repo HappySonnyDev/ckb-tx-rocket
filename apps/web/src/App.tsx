@@ -106,27 +106,64 @@ function App() {
     };
 
     const onBlockFinalized = (block: any) => {
-      // block.finalized 事件发生时，先更新区块数据，再触发火箭发射动画
-      console.log(`🚀 Block finalized: #${block.blockNumber}, 准备发射火箭...`);
+      console.log(block,'block====');
+      // block.finalized 事件发生时，先移除 proposed queue 中匹配的交易
+      console.log(`🚀 Block finalized: #${block.blockNumber}, 准备处理交易和发射火箭...`);
+      
+      // 处理区块确认，移除 proposed queue 中的交易
+      if (typeof gameScene.handleBlockFinalized === 'function') {
+        gameScene.handleBlockFinalized(block);
+      }
+      
+      // 更新 proposed count(减去 block 中的交易数量)
+      if (block.transactions && Array.isArray(block.transactions)) {
+        proposedCountRef.current = Math.max(0, proposedCountRef.current - block.transactions.length);
+        updateGateLabels(gameScene, pendingCountRef.current, proposedCountRef.current);
+      }
+      
       // 更新 Game 场景的当前区块数据
       if (typeof gameScene.updateCurrentBlock === 'function') {
         gameScene.updateCurrentBlock(block);
       }
+      
       // 触发火箭发射动画
       if (typeof gameScene.launchRocket === 'function') {
         gameScene.launchRocket();
       }
     };
 
+    const onTxRejected = (tx: any) => {
+      console.log(`❌ Transaction rejected: ${tx.txHash}, reason: ${tx.reason}`);
+      
+      // 调用游戏场景的处理方法来删除交易
+      if (typeof gameScene.handleTransactionRejected === 'function') {
+        const { removedFromPending, removedFromProposed } = gameScene.handleTransactionRejected(tx);
+        
+        // 更新计数
+        if (removedFromPending) {
+          pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
+        }
+        if (removedFromProposed) {
+          proposedCountRef.current = Math.max(0, proposedCountRef.current - 1);
+        }
+        
+        if (removedFromPending || removedFromProposed) {
+          updateGateLabels(gameScene, pendingCountRef.current, proposedCountRef.current);
+        }
+      }
+    };
+
     EventBus.on('transaction-pending', onTxPending);
     EventBus.on('transaction-proposed', onTxProposed);
     EventBus.on('transaction-confirmed', onTxConfirmed);
+    EventBus.on('transaction-rejected', onTxRejected);
     EventBus.on('block-finalized', onBlockFinalized);
 
     return () => {
       EventBus.off('transaction-pending', onTxPending);
       EventBus.off('transaction-proposed', onTxProposed);
       EventBus.off('transaction-confirmed', onTxConfirmed);
+      EventBus.off('transaction-rejected', onTxRejected);
       EventBus.off('block-finalized', onBlockFinalized);
     };
   }, [isInitialized, phaserRef.current?.scene]);

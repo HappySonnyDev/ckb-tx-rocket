@@ -521,6 +521,53 @@ export class Game extends Scene {
     }
 
     /**
+     * Handles block finalized event
+     * Removes transactions from proposed queue that are included in the finalized block
+     */
+    public handleBlockFinalized(block: any): void {
+        console.log(`🔄 Processing block finalized: #${block.blockNumber}`);
+        
+        // Check if block has transactions array
+        if (!block.transactions || !Array.isArray(block.transactions)) {
+            console.log('⚠️ No transactions in block payload');
+            return;
+        }
+        
+        console.log(`   Block contains ${block.transactions.length} transactions`);
+        
+        // Remove each transaction from proposed queue
+        let removedCount = 0;
+        block.transactions.forEach((tx: { txHash: string }) => {
+            const idx = this.proposedQueueManager.findIndexByTxHash(tx.txHash);
+            if (idx !== -1) {
+                const animal = this.proposedQueueManager.removeByIndex(idx);
+                if (animal && animal.sprite) {
+                    // Fade out animation
+                    this.tweens.add({
+                        targets: animal.sprite,
+                        alpha: 0,
+                        duration: 500,
+                        ease: 'Power2',
+                        onComplete: () => {
+                            animal.sprite.destroy();
+                        },
+                    });
+                    removedCount++;
+                    console.log(`   ✅ Removed transaction from proposed queue: ${tx.txHash}`);
+                }
+            }
+        });
+        
+        // Rearrange queue after removals
+        if (removedCount > 0) {
+            this.proposedQueueManager.arrangeQueue();
+            console.log(`📊 Removed ${removedCount} transactions from proposed queue`);
+        } else {
+            console.log('ℹ️ No matching transactions found in proposed queue');
+        }
+    }
+
+    /**
      * Shows the launch banner with block data
      */
     private showLaunchBanner(): void {
@@ -581,11 +628,8 @@ export class Game extends Scene {
             return;
         }
         
-        const pendingLen = this.pendingQueueManager.getLength();
         const idx = this.pendingQueueManager.findIndexByTxHash(tx.txHash);
-        console.log(
-            `   Initial pending lookup: idx=${idx}, pendingLen=${pendingLen}`,
-        );
+      
         this.pendingQueueManager.debugDump(`proposed ${tx.txHash} pending snapshot`, 25);
         if (idx !== -1) {
             console.log(
@@ -646,6 +690,68 @@ export class Game extends Scene {
     }
 
     /**
+     * Handles rejected transaction event
+     * Removes transaction from both pending and proposed queues
+     * @returns Object indicating which queues the transaction was removed from
+     */
+    public handleTransactionRejected(tx: any): { removedFromPending: boolean; removedFromProposed: boolean } {
+        console.log(`🚫 Processing rejected transaction: ${tx.txHash}`);
+        
+        let removedFromPending = false;
+        let removedFromProposed = false;
+        
+        // Check pending queue first
+        const pendingIdx = this.pendingQueueManager.findIndexByTxHash(tx.txHash);
+        if (pendingIdx !== -1) {
+            const animal = this.pendingQueueManager.removeByIndex(pendingIdx);
+            if (animal && animal.sprite) {
+                // Fade out animation for rejected transaction
+                this.tweens.add({
+                    targets: animal.sprite,
+                    alpha: 0,
+                    scale: 0.5,
+                    duration: 800,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        animal.sprite.destroy();
+                    },
+                });
+                removedFromPending = true;
+                this.pendingQueueManager.arrangeQueue();
+                console.log(`   ✅ Removed and faded out from pending queue: ${tx.txHash}`);
+            }
+        }
+        
+        // Check proposed queue
+        const proposedIdx = this.proposedQueueManager.findIndexByTxHash(tx.txHash);
+        if (proposedIdx !== -1) {
+            const animal = this.proposedQueueManager.removeByIndex(proposedIdx);
+            if (animal && animal.sprite) {
+                // Fade out animation for rejected transaction
+                this.tweens.add({
+                    targets: animal.sprite,
+                    alpha: 0,
+                    scale: 0.5,
+                    duration: 800,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        animal.sprite.destroy();
+                    },
+                });
+                removedFromProposed = true;
+                this.proposedQueueManager.arrangeQueue();
+                console.log(`   ✅ Removed and faded out from proposed queue: ${tx.txHash}`);
+            }
+        }
+        
+        if (!removedFromPending && !removedFromProposed) {
+            console.log(`   ⚠️ Rejected transaction not found in any queue: ${tx.txHash}`);
+        }
+        
+        return { removedFromPending, removedFromProposed };
+    }
+
+    /**
      * Cleans up resources when the scene is shut down
      */
     shutdown(): void {
@@ -659,6 +765,7 @@ export class Game extends Scene {
         EventBus.off("transaction-pending");
         EventBus.off("transaction-proposed");
         EventBus.off("transaction-confirmed");
+        EventBus.off("transaction-rejected");
         EventBus.off("chainviz-disconnected");
 
         // Clean up managers

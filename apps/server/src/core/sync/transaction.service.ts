@@ -63,7 +63,7 @@ export class TransactionService {
   async updateProposedTransactions(
     proposalIds: string[],
     prisma?: TransactionClient,
-  ) {
+  ): Promise<string | null | undefined> {
     const prismaClient = prisma || this.prisma;
     if (proposalIds.length === 0) return;
     this.logger.debug(`Updating ${proposalIds.length} proposed transactions.`);
@@ -74,7 +74,7 @@ export class TransactionService {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        return await prismaClient.transaction.updateMany({
+        await prismaClient.transaction.updateMany({
           where: {
             hash: { in: proposalIds },
             status: 'PENDING',
@@ -83,6 +83,16 @@ export class TransactionService {
             status: 'PROPOSED',
           },
         });
+
+        // 如果只有一个交易，查询并返回其txType
+        if (proposalIds.length === 1) {
+          const tx = await prismaClient.transaction.findUnique({
+            where: { hash: proposalIds[0] },
+            select: { txType: true },
+          });
+          return tx?.txType;
+        }
+        return;
       } catch (error) {
         lastError = error as Error;
         if (attempt < maxRetries) {
@@ -149,7 +159,7 @@ export class TransactionService {
         update: txData,
       });
 
-      await this.createTransactionRelations(tx, prisma);
+      // await this.createTransactionRelations(tx, prisma);
     };
 
     if (prismaClient) {

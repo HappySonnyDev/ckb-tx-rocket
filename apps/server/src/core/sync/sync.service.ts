@@ -9,7 +9,6 @@ import {
   BlockFinalizedPayload,
   TransactionPendingPayload,
   TransactionProposedPayload,
-  TransactionConfirmedPayload,
   TransactionRejectedPayload,
 } from '../../api/websocket/websocket.types';
 
@@ -32,8 +31,8 @@ export class SyncService implements OnModuleInit {
     await Promise.all([
       this.subscribeToNewTipBlock(),
       this.subscribeToNewTransaction(),
-      // this.subscribeToProposedTransaction(),
-      // this.subscribeToRejectedTransaction(),
+      this.subscribeToProposedTransaction(),
+      this.subscribeToRejectedTransaction(),
     ]);
   }
 
@@ -56,31 +55,10 @@ export class SyncService implements OnModuleInit {
         'new_tip_block',
         async (blockString: string) => {
           const receiveTime = Date.now();
-
           try {
             const block = JSON.parse(blockString) as Block;
-            this.logger.log(block, 'block');
             const blockNumber = BigInt(block.header.number);
             const blockTimestamp = parseInt(block.header.timestamp, 16);
-
-            // 计算区块间隔时间
-            if (
-              this.lastBlockTimestamp !== null &&
-              this.lastBlockNumber !== null
-            ) {
-              const timeDiffMs = blockTimestamp - this.lastBlockTimestamp;
-              const timeDiffSec = (timeDiffMs / 1000).toFixed(2);
-              const blockDiff = Number(blockNumber - this.lastBlockNumber);
-
-              this.logger.log(
-                `📦 New Block #${blockNumber} ` +
-                  `| ⏱️  ${timeDiffSec}s since last block ` +
-                  `| 📊 Interval: ${timeDiffMs}ms ` +
-                  `| 🔢 Skipped: ${blockDiff - 1}`,
-              );
-            } else {
-              this.logger.log(`📦 First Block #${blockNumber} received`);
-            }
 
             this.lastBlockTimestamp = blockTimestamp;
             this.lastBlockNumber = blockNumber;
@@ -91,71 +69,11 @@ export class SyncService implements OnModuleInit {
                 prisma,
               );
 
-              for (const proposalHash of block.proposals) {
-                await this.transactionService.updateProposedTransactions(
-                  [proposalHash],
+              for (const tx of block.transactions) {
+                await this.transactionService.deleteTransaction(
+                  tx.hash,
                   prisma,
                 );
-
-                // 查询交易信息以获取 fee 和 size
-                const txData = await prisma.transaction.findUnique({
-                  where: { hash: proposalHash },
-                  select: { fee: true, size: true, txType: true },
-                });
-
-                const proposedPayload: TransactionProposedPayload = {
-                  txHash: proposalHash,
-                  timestamp: new Date().toISOString(),
-                  fee: txData?.fee.toString(),
-                  feeRate: txData
-                    ? this.calculateFeeRate(
-                        txData.fee.toString(),
-                        txData.size.toString(),
-                      )
-                    : undefined,
-                  size: txData?.size.toString(),
-                  txType: txData?.txType,
-                  context: {
-                    blockNumber: savedBlock.number.toString(),
-                    blockHash: savedBlock.hash,
-                  },
-                };
-                this.eventService.emitTransactionProposed(proposedPayload);
-              }
-
-              for (const [i, tx] of block.transactions.entries()) {
-                const txType = await this.transactionService.processCommittedTx(
-                  tx,
-                  savedBlock.id,
-                  prisma,
-                  i === 0,
-                );
-
-                // 查询交易信息以获取 fee 和 size
-                const txData = await prisma.transaction.findUnique({
-                  where: { hash: tx.hash },
-                  select: { fee: true, size: true },
-                });
-
-                const confirmedPayload: TransactionConfirmedPayload = {
-                  txHash: tx.hash,
-                  timestamp: new Date().toISOString(),
-                  fee: txData?.fee.toString(),
-                  feeRate: txData
-                    ? this.calculateFeeRate(
-                        txData.fee.toString(),
-                        txData.size.toString(),
-                      )
-                    : undefined,
-                  size: txData?.size.toString(),
-                  context: {
-                    blockNumber: savedBlock.number.toString(),
-                    blockHash: savedBlock.hash,
-                    txIndexInBlock: i,
-                  },
-                  txType: txType,
-                };
-                this.eventService.emitTransactionConfirmed(confirmedPayload);
               }
 
               const transactionSummaries = block.transactions.map((tx) => ({
@@ -247,10 +165,29 @@ export class SyncService implements OnModuleInit {
           let parsedTx: NewTransactionEntry | null = null;
           try {
             parsedTx = JSON.parse(txEntry) as NewTransactionEntry;
-            this.logger.log(parsedTx, 'parsedTx');
-            await this.transactionService.updateProposedTransactions([
-              parsedTx.transaction.hash,
-            ]);
+            this.logger.log(parsedTx, 'parsedTxprosed');
+
+            // 更新为proposed状态并获取txType
+            const txType =
+              await this.transactionService.updateProposedTransactions([
+                parsedTx.transaction.hash,
+              ]);
+
+            // 发送 proposed 事件
+            const proposedPayload: TransactionProposedPayload = {
+              txHash: parsedTx.transaction.hash,
+              timestamp: new Date().toISOString(),
+              fee: parsedTx.fee,
+              feeRate: this.calculateFeeRate(parsedTx.fee, parsedTx.size),
+              size: parsedTx.size,
+              txType: txType,
+              context: {
+                blockNumber: this.lastBlockNumber?.toString() || '0',
+                blockHash: '',
+              },
+            };
+            this.eventService.emitTransactionProposed(proposedPayload);
+
             this.logger.log(
               `Proposed Transaction Updated: ${parsedTx.transaction.hash}`,
             );
@@ -277,7 +214,7 @@ export class SyncService implements OnModuleInit {
           try {
             // CKB rejected_transaction 返回格式: [txEntry, rejectInfo]
             const parsed = JSON.parse(txEntry);
-
+            this.logger.log(parsed, 'parsedcancel');
             // 检查是否是数组格式
             let txData: NewTransactionEntry;
             let rejectReason = 'Transaction rejected by mempool';
