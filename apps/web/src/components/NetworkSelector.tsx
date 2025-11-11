@@ -60,6 +60,12 @@ export function NetworkSelector({ onNetworkChange, defaultNetwork = 'Testnet' }:
   const handleSelect = (network: 'Mainnet' | 'Testnet') => {
     setSelectedNetwork(network);
     setIsOpen(false);
+    
+    // Update network config
+    const mode = network.toLowerCase() as 'mainnet' | 'testnet';
+    networkConfig.setMode(mode);
+    
+    // Notify parent component
     onNetworkChange?.(network);
   };
 

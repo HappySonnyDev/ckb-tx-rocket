@@ -393,45 +393,13 @@ export class Game extends Scene {
     }
 
     /**
-     * Handles rocket click event - shows block detail popup
+     * Handles rocket click event
      */
     private handleRocketClick(): void {
         console.log("🚀 Rocket clicked!");
         
-        if (!this.currentBlock) {
-            console.log("No block data available yet.");
-            return;
-        }
-        
-        // Get rocket position from renderer
-        const rocketElements = this.rocketRenderer.getRocketElements();
-        const rocketX = rocketElements.rocket.x;
-        const rocketY = rocketElements.rocket.y;
-        
-        // Show block detail popup
-        this.blockDetailManager.showDetail(
-            {
-                blockHash: this.currentBlock.blockHash,
-                blockHeight: this.currentBlock.blockNumber,
-                transactions: this.currentBlock.transactionCount,
-                proposedTransactions: this.currentBlock.proposalsCount,
-                uncleCount: this.currentBlock.unclesCount,
-                timestamp: new Date(parseInt(this.currentBlock.timestamp)).toLocaleString(),
-                confirmedTransactions: this.confirmQueue.map(item => ({
-                    txHash: item.txHash || 'Unknown'
-                })),
-                // Mock data for demonstration
-                occupation: '2,039 Bytes',
-                size: '1,384 Bytes',
-                minerReward: '0.000003038 CKB',
-                difficulty: '4.98 EH',
-                nonce: '0x403B07f4...094d51003',
-            },
-            rocketX,
-            rocketY,
-            this.scale.width,
-            this.scale.height,
-        );
+        // TODO: Add rocket click behavior here
+        // Temporarily disabled BlockDetail display
     }
     
     /**
@@ -492,17 +460,20 @@ export class Game extends Scene {
 
     /**
      * Handles network selection change
+     * Restarts the scene to reload network-specific resources
      */
     private handleNetworkChange(network: string): void {
-        console.log(`Network changed to: ${network}`);
-        EventBus.emit("network-changed", network);
+        console.log(`🌐 Game: Network change requested to: ${network}`);
         
-        // Update network config and reload resources
+        // Emit event to App.tsx for backend reconnection
+        EventBus.emit('network-changed', network);
+        
+        // Update network config
         const mode = network.toLowerCase() as 'mainnet' | 'testnet';
         networkConfig.setMode(mode);
         
-        // Reload the scene to apply new resources
-        console.log(`🔄 Reloading scene with ${mode} resources...`);
+        // Restart the scene to reload all resources with new network
+        console.log(`🔄 Restarting scene for ${mode}...`);
         this.scene.restart();
     }
 
@@ -767,6 +738,36 @@ export class Game extends Scene {
         }
         
         return { removedFromPending, removedFromProposed };
+    }
+
+    /**
+     * Clears all game data (queues, confirmed transactions, current block)
+     * Used when switching networks
+     */
+    public clearAllData(): void {
+        console.log('🧹 Clearing all game data...');
+        
+        // Clear pending queue
+        if (this.pendingQueueManager) {
+            this.pendingQueueManager.clear();
+            console.log('   ✅ Pending queue cleared');
+        }
+        
+        // Clear proposed queue
+        if (this.proposedQueueManager) {
+            this.proposedQueueManager.clear();
+            console.log('   ✅ Proposed queue cleared');
+        }
+        
+        // Clear confirmed queue
+        this.confirmQueue = [];
+        console.log('   ✅ Confirmed queue cleared');
+        
+        // Clear current block
+        this.currentBlock = null;
+        console.log('   ✅ Current block cleared');
+        
+        console.log('✅ All game data cleared successfully');
     }
 
     /**

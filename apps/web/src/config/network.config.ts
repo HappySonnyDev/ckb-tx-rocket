@@ -6,6 +6,28 @@
 export type NetworkMode = 'mainnet' | 'testnet';
 
 /**
+ * Network endpoints configuration
+ */
+export interface NetworkEndpoints {
+  apiUrl: string;
+  wsUrl: string;
+}
+
+/**
+ * Network configuration map
+ */
+const NETWORK_ENDPOINTS: Record<NetworkMode, NetworkEndpoints> = {
+  mainnet: {
+    apiUrl: import.meta.env.VITE_MAINNET_API_URL || 'http://localhost:3001',
+    wsUrl: import.meta.env.VITE_MAINNET_WS_URL || 'http://localhost:3001',
+  },
+  testnet: {
+    apiUrl: import.meta.env.VITE_TESTNET_API_URL || 'http://localhost:3000',
+    wsUrl: import.meta.env.VITE_TESTNET_WS_URL || 'http://localhost:3000',
+  },
+};
+
+/**
  * Network mode state manager
  */
 class NetworkConfig {
@@ -17,6 +39,20 @@ class NetworkConfig {
    */
   getMode(): NetworkMode {
     return this.currentMode;
+  }
+
+  /**
+   * Get endpoints for current network
+   */
+  getEndpoints(): NetworkEndpoints {
+    return NETWORK_ENDPOINTS[this.currentMode];
+  }
+
+  /**
+   * Get endpoints for specific network
+   */
+  getEndpointsForNetwork(mode: NetworkMode): NetworkEndpoints {
+    return NETWORK_ENDPOINTS[mode];
   }
 
   /**

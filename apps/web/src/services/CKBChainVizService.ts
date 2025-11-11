@@ -130,6 +130,23 @@ export class CKBChainVizService {
     }
 
     /**
+     * Reconnects to a new URL (for network switching)
+     * @param newBaseUrl - New base URL to connect to
+     */
+    async reconnect(newBaseUrl: string): Promise<void> {
+        console.log(`🔄 Reconnecting to new URL: ${newBaseUrl}`);
+        
+        // Disconnect from current connection
+        this.disconnect();
+        
+        // Update base URL
+        this.baseUrl = newBaseUrl;
+        
+        // Connect to new URL
+        await this.connect();
+    }
+
+    /**
      * Subscribes to a specific data channel
      * @param channel - Channel to subscribe to ('chain' or 'transactions')
      */

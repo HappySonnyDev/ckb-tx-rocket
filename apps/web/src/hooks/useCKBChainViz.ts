@@ -104,8 +104,50 @@ export function useCKBChainViz() {
       confirmedTransactions: [],
       recentBlocks: [],
       recentTransactions: [],
+      pendingTransactionCount: 0,
+      proposedTransactionCount: 0,
     });
   }, [updateState]);
+
+  /**
+   * Reconnects to a different network
+   * @param newUrl - New API URL to connect to
+   */
+  const reconnect = useCallback(async (newUrl: string) => {
+    console.log(`🔄 Switching network, reconnecting to: ${newUrl}`);
+    
+    // First disconnect and clear state
+    disconnect();
+    
+    // Wait a bit to ensure clean disconnect
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Reconnect to new URL
+    await chainVizService.reconnect(newUrl);
+    
+    // Subscribe to channels
+    chainVizService.subscribe('chain');
+    chainVizService.subscribe('transactions');
+
+    // Fetch snapshot data
+    console.log('📡 Fetching snapshot data from new network...');
+    const snapshot = await chainVizService.getSnapshot();
+    console.log('📦 Snapshot received:', snapshot);
+
+    // Extract data from the response wrapper
+    const snapshotData = snapshot?.data || {};
+
+    updateState({
+      isConnected: true,
+      latestBlock: snapshotData.latestBlock || null,
+      pendingTransactions: snapshotData.pendingTransactions || [],
+      proposedTransactions: snapshotData.proposedTransactions || [],
+      confirmedTransactions: snapshotData.confirmedTransactions || [],
+      recentBlocks: snapshotData.latestBlock ? [snapshotData.latestBlock] : [],
+      pendingTransactionCount: snapshotData.pendingTransactionCount,
+      proposedTransactionCount: snapshotData.proposedTransactionCount,
+    });
+  }, [disconnect, updateState]);
 
   useEffect(() => {
     const handleDisconnected = () => {
@@ -209,6 +251,7 @@ export function useCKBChainViz() {
     isConnecting,
     connect,
     disconnect,
+    reconnect,
     getTransaction,
     getBlock,
   };

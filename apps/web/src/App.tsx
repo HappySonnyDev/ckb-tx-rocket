@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { IRefPhaserGame, PhaserGame } from './PhaserGame';
 import { useCKBChainViz } from './hooks/useCKBChainViz';
 import { chainVizConfig } from './config/chainviz.config';
@@ -25,10 +25,34 @@ function App() {
     blockHash: string;
   } | null>(null);
   const [showLaunchBanner, setShowLaunchBanner] = useState(false);
+  const hasAutoConnectedRef = useRef(false); // Track if auto-connect has run
 
   // 在 App 侧维护门框计数（以 snapshot 初始化，再按事件增量）
   const pendingCountRef = useRef<number>(0);
   const proposedCountRef = useRef<number>(0);
+
+  // Handle network change
+  const handleNetworkChange = useCallback(async (network: 'Mainnet' | 'Testnet') => {
+    console.log(`🌐 Network changed to: ${network}`);
+    
+    // Get new endpoints
+    const mode = network.toLowerCase() as 'mainnet' | 'testnet';
+    const endpoints = networkConfig.getEndpointsForNetwork(mode);
+    console.log(`🔗 New endpoints:`, endpoints);
+    
+    // Reset counts and state
+    pendingCountRef.current = 0;
+    proposedCountRef.current = 0;
+    setIsInitialized(false);
+    
+    // Reconnect to new network
+    try {
+      await chainViz.reconnect(endpoints.apiUrl);
+      console.log(`✅ Successfully reconnected to ${network}`);
+    } catch (error) {
+      console.error(`❌ Failed to reconnect to ${network}:`, error);
+    }
+  }, [chainViz]);
 
   // Initialize network config on mount
   useEffect(() => {
@@ -49,55 +73,59 @@ function App() {
     }
   };
 
+  // Auto-connect on mount (only once)
   useEffect(() => {
-    if (chainVizConfig.autoConnect) {
+    if (chainVizConfig.autoConnect && !hasAutoConnectedRef.current) {
+      console.log('🔌 Initial auto-connect...');
+      hasAutoConnectedRef.current = true;
       chainViz.connect();
     }
-  }, [chainViz.connect]);
-
-  // When snapshot data is available, pass it to the Game scene ONLY ONCE
-  useEffect(() => {
-    // Only initialize ONCE when connection is established
-    if (chainViz.isConnected && phaserRef.current?.scene && !isInitialized) {
-      const gameScene = phaserRef.current.scene as Game;
-
-      // 初始化门框计数（以 snapshot 的 count 字段作为初始值）
-      pendingCountRef.current = (chainViz as any).pendingTransactionCount || chainViz.pendingTransactions?.length || 0;
-      proposedCountRef.current = (chainViz as any).proposedTransactionCount || chainViz.proposedTransactions?.length || 0;
-      updateGateLabels(gameScene as any, pendingCountRef.current, proposedCountRef.current);
-
-      // 初始化队列（一次性）
-      if (gameScene.initializeFromSnapshot) {
-        gameScene.initializeFromSnapshot({
-          latestBlock: chainViz.latestBlock,
-          pendingTransactions: chainViz.pendingTransactions,
-          proposedTransactions: chainViz.proposedTransactions,
-          confirmedTransactions: chainViz.confirmedTransactions,
-        });
-        setIsInitialized(true);
-      }
-    }
-  }, [chainViz.isConnected, phaserRef.current?.scene, isInitialized]);
+  }, []); // Only run once on mount
   
+  // 使用 ref 保存最新的 chainViz 状态
+  const chainVizRef = useRef(chainViz);
+  useEffect(() => {
+    chainVizRef.current = chainViz;
+  }, [chainViz]);
+
   // Listen for scene restart (network change) and re-initialize
   useEffect(() => {
     const handleSceneReady = (scene: Game) => {
-      if (chainViz.isConnected && isInitialized) {
-        console.log('🔄 Scene restarted, re-initializing with current data...');
-        
-        // Re-initialize gate labels
-        updateGateLabels(scene as any, pendingCountRef.current, proposedCountRef.current);
-        
-        // Re-initialize game state
-        if (scene.initializeFromSnapshot) {
-          scene.initializeFromSnapshot({
-            latestBlock: chainViz.latestBlock,
-            pendingTransactions: chainViz.pendingTransactions,
-            proposedTransactions: chainViz.proposedTransactions,
-            confirmedTransactions: chainViz.confirmedTransactions,
-          });
-        }
+      // Use ref to get latest chainViz state
+      const currentChainViz = chainVizRef.current;
+      
+      // Only initialize if connected
+      if (!currentChainViz.isConnected) {
+        console.log('⏸️ Scene ready but not connected yet, waiting...');
+        return;
       }
+      
+      console.log('🔄 Scene ready, initializing with current data...');
+      console.log('   - Pending:', currentChainViz.pendingTransactions?.length);
+      console.log('   - Proposed:', currentChainViz.proposedTransactions?.length);
+      
+      // Update counts from current state
+      const pendingCount = (currentChainViz as any).pendingTransactionCount || currentChainViz.pendingTransactions?.length || 0;
+      const proposedCount = (currentChainViz as any).proposedTransactionCount || currentChainViz.proposedTransactions?.length || 0;
+      
+      pendingCountRef.current = pendingCount;
+      proposedCountRef.current = proposedCount;
+      
+      // Update gate labels
+      updateGateLabels(scene as any, pendingCount, proposedCount);
+      
+      // Initialize game state
+      if (scene.initializeFromSnapshot) {
+        scene.initializeFromSnapshot({
+          latestBlock: currentChainViz.latestBlock,
+          pendingTransactions: currentChainViz.pendingTransactions,
+          proposedTransactions: currentChainViz.proposedTransactions,
+          confirmedTransactions: currentChainViz.confirmedTransactions,
+        });
+      }
+      
+      // Mark as initialized
+      setIsInitialized(true);
     };
     
     EventBus.on('current-scene-ready', handleSceneReady);
@@ -105,7 +133,41 @@ function App() {
     return () => {
       EventBus.off('current-scene-ready', handleSceneReady);
     };
-  }, [chainViz.isConnected, isInitialized, chainViz.latestBlock, chainViz.pendingTransactions, chainViz.proposedTransactions, chainViz.confirmedTransactions]);
+  }, []); // Empty dependency array - only set up once
+
+  // Monitor connection state changes and re-initialize scene when reconnected
+  useEffect(() => {
+    if (chainViz.isConnected && phaserRef.current?.scene) {
+      const scene = phaserRef.current.scene as any;
+      
+      // Check if this is a reconnection (scene already exists but needs re-init)
+      if (scene && typeof scene.initializeFromSnapshot === 'function') {
+        console.log('✅ Reconnected! Re-initializing scene with new data...');
+        console.log('   - Pending:', chainViz.pendingTransactions?.length);
+        console.log('   - Proposed:', chainViz.proposedTransactions?.length);
+        
+        // Update counts
+        const pendingCount = (chainViz as any).pendingTransactionCount || chainViz.pendingTransactions?.length || 0;
+        const proposedCount = (chainViz as any).proposedTransactionCount || chainViz.proposedTransactions?.length || 0;
+        
+        pendingCountRef.current = pendingCount;
+        proposedCountRef.current = proposedCount;
+        
+        // Update gate labels
+        updateGateLabels(scene, pendingCount, proposedCount);
+        
+        // Re-initialize game state
+        scene.initializeFromSnapshot({
+          latestBlock: chainViz.latestBlock,
+          pendingTransactions: chainViz.pendingTransactions,
+          proposedTransactions: chainViz.proposedTransactions,
+          confirmedTransactions: chainViz.confirmedTransactions,
+        });
+        
+        setIsInitialized(true);
+      }
+    }
+  }, [chainViz.isConnected, chainViz.latestBlock]);
 
   // 订阅 WebSocket 事务事件：更新计数+触发动画（若方法存在）
   useEffect(() => {
@@ -233,6 +295,20 @@ function App() {
       EventBus.off('about-menu-clicked', handleAboutMenuClick);
     };
   }, []);
+
+  // 监听网络切换事件
+  useEffect(() => {
+    const handleNetworkChanged = (network: string) => {
+      console.log(`🔔 App: Received network-changed event: ${network}`);
+      handleNetworkChange(network as 'Mainnet' | 'Testnet');
+    };
+
+    EventBus.on('network-changed', handleNetworkChanged);
+
+    return () => {
+      EventBus.off('network-changed', handleNetworkChanged);
+    };
+  }, [handleNetworkChange]);
 
   return (
     <div id="app">

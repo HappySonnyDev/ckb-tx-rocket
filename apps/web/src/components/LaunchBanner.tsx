@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { networkConfig } from '../config/network.config';
 import './LaunchBanner.css';
 
 interface BlockData {
@@ -22,6 +23,20 @@ interface LaunchBannerProps {
 export function LaunchBanner({ blockData, show, onHide }: LaunchBannerProps) {
   const [visible, setVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const [networkMode, setNetworkMode] = useState(networkConfig.getMode());
+
+  // Subscribe to network changes
+  useEffect(() => {
+    const handleNetworkChange = () => {
+      setNetworkMode(networkConfig.getMode());
+    };
+    
+    networkConfig.subscribe(handleNetworkChange);
+    
+    return () => {
+      networkConfig.unsubscribe(handleNetworkChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (show && blockData) {
@@ -36,7 +51,7 @@ export function LaunchBanner({ blockData, show, onHide }: LaunchBannerProps) {
           setVisible(false);
           onHide();
         }, 500); // 动画持续时间
-      }, 300000);
+      }, 3000);
 
       return () => clearTimeout(timer);
     }
@@ -56,6 +71,17 @@ export function LaunchBanner({ blockData, show, onHide }: LaunchBannerProps) {
     return `${miner.substring(0, 6)}...${miner.substring(miner.length - 4)}`;
   };
 
+  // 获取火箭图片路径
+  const rocketImage = `/assets/rocket_${networkMode}.png`;
+
+  // 获取区块浏览器 URL
+  const getExplorerUrl = () => {
+    const baseUrl = networkMode === 'mainnet' 
+      ? 'https://explorer.nervos.org'
+      : 'https://pudge.explorer.nervos.org';
+    return `${baseUrl}/block/${blockData.blockHash}`;
+  };
+
   return (
     <div className={`launch-banner-overlay ${visible && !isExiting ? 'show' : ''}`}>
       <div className={`launch-banner-container ${isExiting ? 'exiting' : ''}`}>
@@ -69,7 +95,7 @@ export function LaunchBanner({ blockData, show, onHide }: LaunchBannerProps) {
         <div className="launch-banner-content">
           {/* 火箭图片 */}
           <div className="launch-banner-rocket">
-            <img src="assets/rocket_testnet.png" alt="Rocket" />
+            <img src={rocketImage} alt="Rocket" />
           </div>
           
           {/* 信息区域 */}
@@ -94,7 +120,7 @@ export function LaunchBanner({ blockData, show, onHide }: LaunchBannerProps) {
             </div>
             
             <a 
-              href={`https://pudge.explorer.nervos.org/block/${blockData.blockHash}`}
+              href={getExplorerUrl()}
               className="launch-banner-explorer"
               target="_blank"
               rel="noopener noreferrer"

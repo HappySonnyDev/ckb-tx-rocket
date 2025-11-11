@@ -97,6 +97,7 @@
     height: 136px;
     padding: 16px;
     gap: 16px;
+    box-sizing: border-box;
     border: 2px solid;
     margin-top: -2px;
 }
@@ -186,6 +187,8 @@
 
 .launch-banner-timestamp {
     font-family: "Jersey 25";
+    position: relative;
+    top: 2px;
     font-weight: 400;
 }
 
