@@ -9,6 +9,13 @@ async function bootstrap() {
     ? (process.env.LOG_LEVEL.split(',') as LogLevel[])
     : ['error', 'warn', 'log'];
 
+  // Determine which network to run based on NETWORK environment variable
+  const network = process.env.NETWORK || 'testnet';
+  const port =
+    network === 'mainnet'
+      ? process.env.API_MAINNET_PORT || 3001
+      : process.env.API_TESTNET_PORT || 3000;
+
   const app = await NestFactory.create(AppModule, {
     logger: logLevels,
   });
@@ -19,7 +26,9 @@ async function bootstrap() {
   // Register global exception filter
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(port);
+
+  console.log(`🚀 Server running on port ${port} for ${network.toUpperCase()}`);
 }
 
 void bootstrap();

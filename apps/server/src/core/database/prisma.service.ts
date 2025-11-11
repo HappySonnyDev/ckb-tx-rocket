@@ -7,11 +7,21 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
+    // Determine database URL based on NETWORK environment variable
+    const network = process.env.NETWORK || 'testnet';
+    const dbFile =
+      network === 'mainnet'
+        ? process.env.MAINNET_DATABASE_FILE || './ckb-mainnet.db'
+        : process.env.TESTNET_DATABASE_FILE || './ckb-testnet.db';
+    const databaseUrl = `file:${dbFile}?connection_limit=1&pool_timeout=30&socket_timeout=30`;
+
     super({
-      datasourceUrl:
-        process.env.DATABASE_URL +
-        '?connection_limit=1&pool_timeout=30&socket_timeout=30',
+      datasourceUrl: databaseUrl,
     });
+
+    console.log(
+      `💾 Database initialized for ${network.toUpperCase()}: ${dbFile}`,
+    );
   }
 
   async onModuleInit() {

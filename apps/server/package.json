@@ -10,6 +10,9 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
+    "start:testnet": "NETWORK=testnet nest start --watch",
+    "start:mainnet": "NETWORK=mainnet nest start --watch",
+    "start:both": "concurrently \"NETWORK=testnet nest start --watch\" \"NETWORK=mainnet nest start --watch\"",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
@@ -22,6 +25,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:deploy": "prisma migrate deploy",
+    "db:init:testnet": "DATABASE_URL=file:./ckb-testnet.db prisma db push",
+    "db:init:mainnet": "DATABASE_URL=file:./ckb-mainnet.db prisma db push",
     "db:clear": "ts-node scripts/clear-database.ts",
     "postinstall": "prisma generate"
   },

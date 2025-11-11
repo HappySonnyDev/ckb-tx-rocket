@@ -26,7 +26,16 @@ export class CkbWebsocketService implements OnModuleInit, OnModuleDestroy {
   private isListeningForNotifications = false;
 
   constructor(private readonly configService: ConfigService) {
-    this.ckbWsUrl = this.configService.get<string>('CKB_WS_RPC_URL')!;
+    // Determine WebSocket URL based on NETWORK environment variable
+    const network = process.env.NETWORK || 'testnet';
+    this.ckbWsUrl =
+      network === 'mainnet'
+        ? this.configService.get<string>('MAINNET_WS_RPC_URL')!
+        : this.configService.get<string>('TESTNET_WS_RPC_URL')!;
+
+    this.logger.log(
+      `🌐 CKB WebSocket URL configured for ${network.toUpperCase()}: ${this.ckbWsUrl}`,
+    );
   }
 
   onModuleInit() {

@@ -31,8 +31,8 @@ export class SyncService implements OnModuleInit {
     await Promise.all([
       this.subscribeToNewTipBlock(),
       this.subscribeToNewTransaction(),
-      // this.subscribeToProposedTransaction(),
-      // this.subscribeToRejectedTransaction(),
+      this.subscribeToProposedTransaction(),
+      this.subscribeToRejectedTransaction(),
     ]);
   }
 
@@ -127,7 +127,6 @@ export class SyncService implements OnModuleInit {
             const parsedTx = JSON.parse(txEntry) as NewTransactionEntry;
             const txType =
               await this.transactionService.processPendingTx(parsedTx);
-            this.logger.log(`New Transaction: ${txType}`);
 
             const pendingPayload: TransactionPendingPayload = {
               txHash: parsedTx.transaction.hash,
