@@ -23,7 +23,7 @@ export function FeedbackButton({ onClick }: FeedbackButtonProps) {
           alt="Feedback"
           className="feedback-icon"
         />
-        <span className="feedback-text">Give Feedback</span>
+        <span className="feedback-text text-body1">Give Feedback</span>
       </div>
       <div className="feedback-bottom-bar"></div>
     </div>

@@ -163,7 +163,7 @@ export function TransactionDetail({ visible, data, x, y, screenWidth, screenHeig
             <div className="tx-detail-icon">🐢</div>
           )}
           <div className="tx-detail-hash-section">
-            <div className="tx-detail-hash">{formatTxHash(data.txHash)}</div>
+            <div className="tx-detail-hash text-h2">{formatTxHash(data.txHash)}</div>
             {data.category && (
               <div className="tx-detail-category">
                 <div 
@@ -174,7 +174,14 @@ export function TransactionDetail({ visible, data, x, y, screenWidth, screenHeig
                       : '#F8F0DC' 
                   }}
                 ></div>
-                <div className="category-label">
+                <div 
+                  className="category-label"
+                  style={{
+                    color: data.category in TxTypeColor 
+                      ? TxTypeColor[data.category as keyof typeof TxTypeColor] 
+                      : '#F8F0DC'
+                  }}
+                >
                   {data.category in TxTypeColor ? data.category : 'Other'}
                 </div>
               </div>

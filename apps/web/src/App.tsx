@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { IRefPhaserGame, PhaserGame } from './PhaserGame';
 import { useCKBChainViz } from './hooks/useCKBChainViz';
 import { chainVizConfig } from './config/chainviz.config';
+import { networkConfig } from './config/network.config';
 import { Game } from './game/scenes/Game';
 import { EventBus } from './game/EventBus';
 import { AboutUsPopup } from './components/AboutUsPopup';
@@ -28,6 +29,11 @@ function App() {
   // 在 App 侧维护门框计数（以 snapshot 初始化，再按事件增量）
   const pendingCountRef = useRef<number>(0);
   const proposedCountRef = useRef<number>(0);
+
+  // Initialize network config on mount
+  useEffect(() => {
+    networkConfig.initialize();
+  }, []);
 
   // 封装：更新门框文案（优先调用 Game 的公开方法；否则直接设置私有字段）
   const updateGateLabels = (gameScene: any, pending: number, proposed: number) => {
@@ -72,6 +78,34 @@ function App() {
       }
     }
   }, [chainViz.isConnected, phaserRef.current?.scene, isInitialized]);
+  
+  // Listen for scene restart (network change) and re-initialize
+  useEffect(() => {
+    const handleSceneReady = (scene: Game) => {
+      if (chainViz.isConnected && isInitialized) {
+        console.log('🔄 Scene restarted, re-initializing with current data...');
+        
+        // Re-initialize gate labels
+        updateGateLabels(scene as any, pendingCountRef.current, proposedCountRef.current);
+        
+        // Re-initialize game state
+        if (scene.initializeFromSnapshot) {
+          scene.initializeFromSnapshot({
+            latestBlock: chainViz.latestBlock,
+            pendingTransactions: chainViz.pendingTransactions,
+            proposedTransactions: chainViz.proposedTransactions,
+            confirmedTransactions: chainViz.confirmedTransactions,
+          });
+        }
+      }
+    };
+    
+    EventBus.on('current-scene-ready', handleSceneReady);
+    
+    return () => {
+      EventBus.off('current-scene-ready', handleSceneReady);
+    };
+  }, [chainViz.isConnected, isInitialized, chainViz.latestBlock, chainViz.pendingTransactions, chainViz.proposedTransactions, chainViz.confirmedTransactions]);
 
   // 订阅 WebSocket 事务事件：更新计数+触发动画（若方法存在）
   useEffect(() => {

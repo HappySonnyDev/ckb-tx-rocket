@@ -36,7 +36,7 @@ export function LaunchBanner({ blockData, show, onHide }: LaunchBannerProps) {
           setVisible(false);
           onHide();
         }, 500); // 动画持续时间
-      }, 3000);
+      }, 300000);
 
       return () => clearTimeout(timer);
     }
@@ -75,20 +75,20 @@ export function LaunchBanner({ blockData, show, onHide }: LaunchBannerProps) {
           {/* 信息区域 */}
           <div className="launch-banner-info">
             <div className="launch-banner-header-text">
-              <span className="launch-banner-title">
+              <span className="launch-banner-title text-h2">
                 Block #{blockData.blockNumber} launched!
               </span>
-              <span className="launch-banner-timestamp">
+              <span className="launch-banner-timestamp text-caption">
                 {blockData.timestamp}
               </span>
             </div>
             
-            <span className="launch-banner-tx-count">
+            <span className="launch-banner-tx-count text-h4">
               {blockData.transactionCount} lucky transaction{blockData.transactionCount !== 1 ? 's' : ''} made it on board!
             </span>
             
             <div className="launch-banner-miner-section">
-              <span className="launch-banner-miner">
+              <span className="launch-banner-miner text-h4">
                 Launched by <span className="launch-banner-miner-address">{formatMiner(blockData.miner)}</span>
               </span>
             </div>
@@ -100,7 +100,7 @@ export function LaunchBanner({ blockData, show, onHide }: LaunchBannerProps) {
               rel="noopener noreferrer"
             >
               <img src="/assets/link.svg" alt="" className="launch-banner-link-icon" />
-              <span className="launch-banner-link-text">View on Explorer</span>
+              <span className="launch-banner-link-text text-caption">View on Explorer</span>
             </a>
           </div>
         </div>

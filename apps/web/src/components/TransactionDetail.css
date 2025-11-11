@@ -4,14 +4,60 @@
   font-family: 'Jersey25' system-ui;
 }
 
+/* Mainnet styles */
+:root[data-network="mainnet"] .tx-detail-content {
+  background-color: var(--color-surface-default);
+  border-color: var(--color-brand-primary);
+}
+
+:root[data-network="mainnet"] .tx-detail-hash,
+:root[data-network="mainnet"] .info-label,
+:root[data-network="mainnet"] .info-value {
+  color: var(--color-brand-primary);
+}
+
+:root[data-network="mainnet"] .tx-detail-icon-img {
+  border-color: var(--color-brand-primary);
+}
+
+:root[data-network="mainnet"] .category-color-block {
+  border-color: var(--color-brand-secondary);
+}
+
+:root[data-network="mainnet"] .category-label {
+  color: var(--color-brand-secondary);
+}
+
+/* Testnet styles */
+:root[data-network="testnet"] .tx-detail-content {
+  background-color: var(--color-surface-testnet-default);
+  border-color: var(--color-brand-testnet-primary);
+}
+
+:root[data-network="testnet"] .tx-detail-hash,
+:root[data-network="testnet"] .info-label,
+:root[data-network="testnet"] .info-value {
+  color: var(--color-brand-testnet-primary);
+}
+
+:root[data-network="testnet"] .tx-detail-icon-img {
+  border-color: var(--color-brand-testnet-primary);
+}
+
+:root[data-network="testnet"] .category-color-block {
+  border-color: var(--color-brand-testnet-secondary);
+}
+
+:root[data-network="testnet"] .category-label {
+  color: var(--color-brand-testnet-secondary);
+}
+
+/* Common styles */
 .tx-detail-content {
-    font-size: 14px;
-    line-height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: #FBFAEE;
   padding: 16px;
-  border: 2px solid #805CAD;
+  border: 2px solid;
   width: 405px;
   box-sizing: border-box;
   gap: 12px;
@@ -22,20 +68,18 @@
   display: flex;
   flex-direction: row;
   align-items: flex-start;
-  font-size: 24px;
   gap: 12px;
 }
 
 .tx-detail-icon {
-  font-size: 32px;
   line-height: 1;
   flex-shrink: 0;
 }
 
 .tx-detail-icon-img {
   width: 56px;
-    border: 2px solid #807353;
-    padding: 4px;
+  border: 2px solid;
+  padding: 4px;
   height: 56px;
   box-sizing: border-box;
   object-fit: contain;
@@ -50,10 +94,7 @@
 }
 
 .tx-detail-hash {
-  color: #805CAD;
-  font-size: 24px;
   font-weight: 400;
-  line-height: 100%;
   word-break: break-all;
 }
 
@@ -67,16 +108,8 @@
 .category-color-block {
   width: 24px;
   height: 12px;
-  background-color: #B29779;
-  border: 1px solid #807353;
+  border: 1px solid;
   flex-shrink: 0;
-}
-
-.category-label {
-  color: #807353;
-  font-size: 14px;
-
-  line-height: 100%;
 }
 
 /* 信息列表样式 */
@@ -94,17 +127,11 @@
 }
 
 .info-label {
-  color: #805CAD;
-  font-size: 12px;
   font-weight: 400;
-  line-height: 100%;
   justify-self: start;
 }
 
 .info-value {
-  color: #805CAD;
-  font-size: 12px;
   font-weight: 400;
-  line-height: 100%;
   justify-self: start;
 }

@@ -14,10 +14,6 @@
   transition: opacity 0.3s ease;
 }
 
-.about-toggle-icon:hover {
-  /* opacity: 0.8; */
-}
-
 .about-panel {
   width: 110px;
   max-height: 500px;
@@ -33,9 +29,47 @@
   opacity: 0;
 }
 
+/* Mainnet styles */
+:root[data-network="mainnet"] .about-panel-content {
+  background-color: var(--color-surface-default);
+  border-color: var(--color-brand-primary);
+}
+
+:root[data-network="mainnet"] .about-menu-item:hover {
+  background-color: var(--color-surface-default-hover);
+}
+
+:root[data-network="mainnet"] .about-menu-text {
+  color: var(--color-brand-primary);
+}
+
+:root[data-network="mainnet"] .about-bottom-bar {
+  background-color: var(--color-surface-primary);
+  border-color: var(--color-brand-primary);
+}
+
+/* Testnet styles */
+:root[data-network="testnet"] .about-panel-content {
+  background-color: var(--color-surface-testnet-default);
+  border-color: var(--color-brand-testnet-primary);
+}
+
+:root[data-network="testnet"] .about-menu-item:hover {
+  background-color: var(--color-surface-testnet-default-hover);
+}
+
+:root[data-network="testnet"] .about-menu-text {
+  color: var(--color-brand-testnet-primary);
+}
+
+:root[data-network="testnet"] .about-bottom-bar {
+  background-color: var(--color-surface-testnet-primary);
+  border-color: var(--color-brand-testnet-primary);
+}
+
+/* Common styles */
 .about-panel-content {
-  background-color: #FBFAEE;
-  border: 2px solid #805CAD;
+  border: 2px solid;
   padding: 4px 0;
 }
 
@@ -47,18 +81,8 @@
   cursor: pointer;
 }
 
-.about-menu-item:hover {
-  /* background-color: #F0E8F8; */
-}
-
-.about-menu-text {
-  color: #805CAD;
-  font-size: 14px;
-}
-
 .about-bottom-bar {
-  background-color: #D8BBF0;
   height: 3px;
-  border: 2px solid #805CAD;
+  border: 2px solid;
   border-top: none;
 }

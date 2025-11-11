@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { EventBus } from '../game/EventBus';
+import { networkConfig } from '../config/network.config';
 import './NetworkSelector.css';
 
 interface NetworkSelectorProps {
@@ -14,7 +15,9 @@ interface NetworkSelectorProps {
  */
 export function NetworkSelector({ onNetworkChange, defaultNetwork = 'Testnet' }: NetworkSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedNetwork, setSelectedNetwork] = useState(defaultNetwork);
+  // Initialize from network config to maintain state across scene restarts
+  const initialNetwork = networkConfig.getMode() === 'mainnet' ? 'Mainnet' : 'Testnet';
+  const [selectedNetwork, setSelectedNetwork] = useState<'Mainnet' | 'Testnet'>(initialNetwork);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -38,6 +41,21 @@ export function NetworkSelector({ onNetworkChange, defaultNetwork = 'Testnet' }:
       EventBus.off('canvas-clicked', handleCanvasClick);
     };
   }, []);
+  
+  // Sync with network config changes
+  useEffect(() => {
+    const handleNetworkConfigChange = () => {
+      const mode = networkConfig.getMode();
+      const network = mode === 'mainnet' ? 'Mainnet' : 'Testnet';
+      setSelectedNetwork(network);
+    };
+    
+    networkConfig.subscribe(handleNetworkConfigChange);
+    
+    return () => {
+      networkConfig.unsubscribe(handleNetworkConfigChange);
+    };
+  }, []);
 
   const handleSelect = (network: 'Mainnet' | 'Testnet') => {
     setSelectedNetwork(network);
@@ -45,31 +63,40 @@ export function NetworkSelector({ onNetworkChange, defaultNetwork = 'Testnet' }:
     onNetworkChange?.(network);
   };
 
+  // Get network-specific asset paths
+  const networkMode = selectedNetwork.toLowerCase();
+  const arrowIcon = `/assets/arrow_${networkMode}.svg`;
+  const checkIcon = `/assets/check_${networkMode}.svg`;
+
   return (
-    <div ref={containerRef} className="network-selector-wrapper">
+    <div 
+      ref={containerRef} 
+      className="network-selector-wrapper"
+      data-network={selectedNetwork.toLowerCase()}
+    >
       <div className="network-main-button" onClick={() => setIsOpen(!isOpen)}>
-        <span className="network-selected-text">{selectedNetwork}</span>
+        <span className="network-selected-text text-body1">{selectedNetwork}</span>
         <img
           className={`network-arrow-icon ${isOpen ? 'open' : ''}`}
-          src="/assets/arrow.svg"
+          src={arrowIcon}
           alt="arrow"
         />
       </div>
 
       <div className={`network-options-container ${isOpen ? 'open' : ''}`}>
         <div className="network-option-item" onClick={() => handleSelect('Mainnet')}>
-          <span className="network-option-text">Mainnet</span>
+          <span className="network-option-text text-body1">Mainnet</span>
           <img
             className={`network-check-icon ${selectedNetwork !== 'Mainnet' ? 'hidden' : ''}`}
-            src="/assets/check.svg"
+            src={checkIcon}
             alt="check"
           />
         </div>
         <div className="network-option-item" onClick={() => handleSelect('Testnet')}>
-          <span className="network-option-text">Testnet</span>
+          <span className="network-option-text text-body1">Testnet</span>
           <img
             className={`network-check-icon ${selectedNetwork !== 'Testnet' ? 'hidden' : ''}`}
-            src="/assets/check.svg"
+            src={checkIcon}
             alt="check"
           />
         </div>

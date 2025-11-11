@@ -1,5 +1,6 @@
 import { Scene } from "phaser";
 import { EventBus } from "../EventBus";
+import { networkConfig, NETWORK_SPECIFIC_RESOURCES } from "../../config/network.config";
 import {
     CKBChainVizService,
     Block,
@@ -91,15 +92,10 @@ export class Game extends Scene {
         this.load.image("cafe", "cafe.png");
         this.load.image("cake", "cake.png");
         this.load.image("meseum", "meseum.png");
-        this.load.image("king_testnet", "king_testnet.png");
-        this.load.image("platform_testnet", "platform_testnet.png");
-        this.load.image("platform_open_testnet", "platform_open_testnet.png");
-        this.load.image("pow_testnet", "pow_testnet.png");
-        this.load.image("rocket_testnet", "rocket_testnet.png");
-        this.load.image("tizi_testnet", "tizi_testnet.png");
-        this.load.image("king_next_testnet", "king_next_testnet.png");
-        this.load.image("rocket_close_testnet", "rocket_close_testnet.png");
         this.load.image("fire", "fire.png");
+        
+        // Load network-specific resources
+        this.loadNetworkResources();
 
         // Load animal sprites for animation
         this.load.svg("rabbit", "rabbit.svg");
@@ -112,6 +108,20 @@ export class Game extends Scene {
         // Load gate icons
         this.load.svg("gate-left", "gate-left.svg");
         this.load.svg("gate-bottom", "gate-bottom.svg");
+    }
+    
+    /**
+     * Load network-specific resources based on current network mode
+     */
+    private loadNetworkResources(): void {
+        const mode = networkConfig.getMode();
+        console.log(`🔄 Loading resources for ${mode}`);
+        
+        NETWORK_SPECIFIC_RESOURCES.forEach(resource => {
+            const resourceKey = networkConfig.getResourceName(resource);
+            const resourceFile = `${resourceKey}.png`;
+            this.load.image(resourceKey, resourceFile);
+        });
     }
 
     /**
@@ -486,6 +496,14 @@ export class Game extends Scene {
     private handleNetworkChange(network: string): void {
         console.log(`Network changed to: ${network}`);
         EventBus.emit("network-changed", network);
+        
+        // Update network config and reload resources
+        const mode = network.toLowerCase() as 'mainnet' | 'testnet';
+        networkConfig.setMode(mode);
+        
+        // Reload the scene to apply new resources
+        console.log(`🔄 Reloading scene with ${mode} resources...`);
+        this.scene.restart();
     }
 
     /**

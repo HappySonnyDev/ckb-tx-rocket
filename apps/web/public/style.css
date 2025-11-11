@@ -1,25 +1,134 @@
+/* ========================================
+   Color System
+   ======================================== */
+
+:root {
+    /* Brand Colors - Mainnet */
+    --color-brand-primary: #815cad;
+    --color-brand-primary-lighter: #aabbbd;
+    --color-brand-secondary: #664a3d;
+    --color-brand-secondary-lighter: #b48b79;
+    --color-brand-accent: #f2ec8a;
+
+    /* Brand Colors - Testnet */
+    --color-brand-testnet-primary: #b77830;
+    --color-brand-testnet-primary-lighter: #bda48b;
+    --color-brand-testnet-secondary: #664a3d;
+    --color-brand-testnet-secondary-lighter: #b48b79;
+    --color-brand-testnet-accent: #f2ec8a;
+
+    /* Surface Colors - Mainnet */
+    --color-surface-background: #e2c0a0;
+    --color-surface-default: #fbfaee;
+    --color-surface-default-hover: #ece7e6;
+    --color-surface-primary: #d8bbf0;
+    --color-surface-primary-hover: #ceb0e8;
+    --color-surface-secondary: #f0ebd8;
+
+    /* Surface Colors - Testnet */
+    --color-surface-testnet-background: #e2c0a0;
+    --color-surface-testnet-default: #fbfaee;
+    --color-surface-testnet-default-hover: #f3ead7;
+    --color-surface-testnet-primary: #f0dfbb;
+    --color-surface-testnet-primary-hover: #e9d3aa;
+    --color-surface-testnet-secondary: #f0ebd8;
+}
+
 @font-face {
-    font-family: 'Jersey 25';
-    src: url('/fonts/Jersey25.ttf') format('truetype');
+    font-family: "Jersey 25";
+    src: url("/fonts/Jersey25.ttf") format("truetype");
     font-weight: normal;
     font-style: normal;
     font-display: swap;
 }
 @font-face {
-    font-family: 'Inter';
-    src: url('/fonts/Inter.ttf') format('truetype');
+    font-family: "Inter";
+    src: url("/fonts/Inter.ttf") format("truetype");
     font-weight: normal;
     font-style: normal;
     font-display: swap;
 }
 
+/* ========================================
+   Typography System
+   ======================================== */
+
+/* Heading styles */
+h1,
+.text-h1 {
+    font-family: "Jersey 25", Arial, Helvetica, sans-serif;
+    font-size: 32px;
+    font-weight: 400;
+
+    line-height: 100%;
+    margin: 0;
+}
+
+h2,
+.text-h2 {
+    font-family: "Jersey 25", Arial, Helvetica, sans-serif;
+    font-size: 24px;
+    line-height: 100%;
+    font-weight: 400;
+
+    margin: 0;
+}
+
+h3,
+.text-h3 {
+    font-family: "Jersey 25", Arial, Helvetica, sans-serif;
+    font-size: 18px;
+    line-height: 100%;
+    font-weight: 400;
+
+    margin: 0;
+}
+
+h4,
+.text-h4 {
+    font-family: "Jersey 25", Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    line-height: 100%;
+    font-weight: 400;
+
+    margin: 0;
+}
+
+/* Body text styles */
+.text-body1 {
+    font-family: "Jersey 25", Arial, Helvetica, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 100%;
+}
+
+.text-body2 {
+    font-family: "Inter", Arial, Helvetica, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+
+    line-height: 160%;
+}
+
+/* Caption text */
+.text-caption {
+    font-family: "Jersey 25", Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    line-height: 100%;
+}
+
+/* ========================================
+   Base Styles
+   ======================================== */
 
 body {
     margin: 0;
     padding: 0;
     color: rgba(255, 255, 255, 0.87);
-    background-color: #000000; 
-    font-family: 'Jersey 25', Arial, Helvetica, sans-serif;
+    background-color: #000000;
+    font-family: "Jersey 25", Arial, Helvetica, sans-serif;
+    font-size: 14px;
+    line-height: 100%;
 }
 
 #app {
@@ -69,105 +178,5 @@ body {
     }
 }
 
-/* Launch Banner */
-.launch-banner {
-    position: fixed;
-    top: -400px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 380px;
-    padding: 16px 20px;
-    background: #EED2B9;
-    border: 3px solid #B77830;
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-    z-index: 10000;
-    opacity: 0;
-    transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    font-family: 'Press Start 2P', monospace, Arial, sans-serif;
-}
 
-.launch-banner.show {
-    top: 100px;
-    opacity: 1;
-}
 
-.launch-banner-header {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    margin-bottom: 12px;
-}
-
-.launch-banner-rocket {
-    width: 80px;
-    height: 80px;
-    flex-shrink: 0;
-    border: 2px solid #B77830;
-    background: #FBFAEE;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px;
-}
-
-.launch-banner-rocket img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
-
-.launch-banner-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.launch-banner-title {
-    font-size: 16px;
-    font-weight: bold;
-    color: #B77830;
-    margin: 0 0 6px 0;
-    line-height: 1.4;
-    word-wrap: break-word;
-}
-
-.launch-banner-timestamp {
-    font-size: 10px;
-    color: #666;
-    margin-bottom: 8px;
-}
-
-.launch-banner-tx-info {
-    font-size: 12px;
-    color: #B77830;
-    margin-bottom: 4px;
-    line-height: 1.5;
-}
-
-.launch-banner-miner {
-    font-size: 12px;
-    color: #B77830;
-    margin-bottom: 8px;
-    line-height: 1.5;
-}
-
-.launch-banner-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 11px;
-    color: #B77830;
-    text-decoration: none;
-    transition: all 0.3s;
-}
-
-.launch-banner-link:hover {
-    color: #6B5B88;
-    text-decoration: underline;
-}
-
-.launch-banner-link::after {
-    content: '↗';
-    font-size: 12px;
-}

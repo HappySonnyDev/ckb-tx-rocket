@@ -11,10 +11,42 @@
     z-index: 10000;
 }
 
+/* Mainnet styles */
+:root[data-network="mainnet"] .about-us-popup-container {
+    background-color: var(--color-surface-secondary);
+    border-color: var(--color-brand-secondary);
+}
+
+:root[data-network="mainnet"] .about-us-popup-title,
+:root[data-network="mainnet"] .about-us-popup-description,
+:root[data-network="mainnet"] .about-us-popup-description h3 {
+    color: var(--color-brand-secondary);
+}
+
+:root[data-network="mainnet"] .about-us-popup-content::-webkit-scrollbar-thumb {
+    background: var(--color-brand-secondary);
+}
+
+/* Testnet styles */
+:root[data-network="testnet"] .about-us-popup-container {
+    background-color: var(--color-surface-testnet-secondary);
+    border-color: var(--color-brand-testnet-secondary);
+}
+
+:root[data-network="testnet"] .about-us-popup-title,
+:root[data-network="testnet"] .about-us-popup-description,
+:root[data-network="testnet"] .about-us-popup-description h3 {
+    color: var(--color-brand-testnet-secondary);
+}
+
+:root[data-network="testnet"] .about-us-popup-content::-webkit-scrollbar-thumb {
+    background: var(--color-brand-testnet-secondary);
+}
+
+/* Common styles */
 .about-us-popup-container {
     position: relative;
-    background-color: #f0ebd8;
-    border: 2px solid #664a3d;
+    border: 2px solid;
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     max-width: 700px;
@@ -35,36 +67,10 @@
     transition: all 0.2s ease;
     padding: 0;
     opacity: 0.7;
-    font-size: 0;
-}
-
-.about-us-popup-close::before,
-.about-us-popup-close::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 16px;
-    height: 2px;
-    background-color: #664a3d;
-    transform-origin: center;
-}
-
-.about-us-popup-close::before {
-    transform: translate(-50%, -50%) rotate(45deg);
-}
-
-.about-us-popup-close::after {
-    transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .about-us-popup-close:hover {
     opacity: 1;
-}
-
-.about-us-popup-close:hover::before,
-.about-us-popup-close:hover::after {
-    background-color: #2a2520;
 }
 
 .about-us-popup-content {
@@ -75,42 +81,21 @@
 }
 
 .about-us-popup-title {
-    color: #664a3d;
-    font-size: 32px;
-    font-family:
-        "Jersey25" -apple-system,
-        sans-serif;
     margin: 0 0 28px 0;
     text-align: center;
-    line-height: 100%;
     display: flex;
-    font-weight: 400;
     align-items: center;
     justify-content: center;
-}
-
-.about-us-popup-description {
-    color: #664a3d;
 }
 
 .about-us-popup-description p {
     margin: 0 0 18px 0;
     text-align: left;
-    font-size: 14px;
-    font-family:
-        Inter -apple-system,
-        sans-serif;
 }
 
 .about-us-popup-description h3 {
-    color: #664a3d;
-    font-size: 24px;
     margin: 24px 0 14px 0;
     text-align: left;
-    font-weight: 400;
-    font-family:
-        "Jersey25" -apple-system,
-        sans-serif;
 }
 
 .about-us-popup-description ul {
@@ -141,8 +126,6 @@
 }
 
 .about-us-popup-content::-webkit-scrollbar-thumb {
-    background: #664a3d;
-    /* border-radius: 2px; */
     border-top: 40px solid transparent;
     border-bottom: 40px solid transparent;
     background-clip: padding-box;

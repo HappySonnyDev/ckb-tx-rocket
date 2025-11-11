@@ -7,21 +7,55 @@
   top: 3px;
 }
 
+/* Mainnet styles */
+:root[data-network="mainnet"] .feedback-button {
+  background-color: var(--color-surface-default);
+  border-color: var(--color-brand-primary);
+}
+
+:root[data-network="mainnet"] .feedback-button:hover {
+  background-color: var(--color-surface-default-hover);
+}
+
+:root[data-network="mainnet"] .feedback-text {
+  color: var(--color-brand-primary);
+}
+
+:root[data-network="mainnet"] .feedback-bottom-bar {
+  background-color: var(--color-surface-primary);
+  border-color: var(--color-brand-primary);
+}
+
+/* Testnet styles */
+:root[data-network="testnet"] .feedback-button {
+  background-color: var(--color-surface-testnet-default);
+  border-color: var(--color-brand-testnet-primary);
+}
+
+:root[data-network="testnet"] .feedback-button:hover {
+  background-color: var(--color-surface-testnet-default-hover);
+}
+
+:root[data-network="testnet"] .feedback-text {
+  color: var(--color-brand-testnet-primary);
+}
+
+:root[data-network="testnet"] .feedback-bottom-bar {
+  background-color: var(--color-surface-testnet-primary);
+  border-color: var(--color-brand-testnet-primary);
+}
+
+/* Common styles */
 .feedback-button {
   display: flex;
   align-items: center;
-  background-color: #FBFAEE;
   padding: 7px 16px;
   gap: 8px;
-  border: 2px solid #805CAD;
+  border: 2px solid;
   height: 32px;
   box-sizing: border-box;
   cursor: pointer;
   transition: background-color 0.2s ease;
-}
-
-.feedback-button:hover {
-  /* background-color: #F0E8F8; */
 }
 
 .feedback-icon {
@@ -30,14 +64,8 @@
   object-fit: fill;
 }
 
-.feedback-text {
-  color: #805CAD;
-  font-size: 14px;
-}
-
 .feedback-bottom-bar {
-  background-color: #D8BBF0;
   height: 2px;
-  border: 2px solid #805CAD;
+  border: 2px solid;
   border-top: none;
 }

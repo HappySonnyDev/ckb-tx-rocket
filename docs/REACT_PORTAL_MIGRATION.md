@@ -189,7 +189,7 @@ function App() {
 <style>{`
   .network-main-button {
     background-color: #FBFAEE;  /* 修改这里 */
-    border: 2px solid #805CAD;
+    border: 2px solid #815CAD;
   }
 `}</style>
 ```
@@ -202,7 +202,7 @@ import './NetworkSelector.css';
 // NetworkSelector.css
 .network-main-button {
   background-color: #FBFAEE;
-  border: 2px solid #805CAD;
+  border: 2px solid #815CAD;
 }
 ```
 

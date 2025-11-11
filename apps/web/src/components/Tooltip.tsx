@@ -76,13 +76,13 @@ export function Tooltip({ visible, content, x, y, width, height, onClose }: Tool
     
     const colors = Array.isArray(content.highlightColor)
       ? content.highlightColor
-      : Array(highlights.length).fill(content.highlightColor || '#F2EC8A');
+      : Array(highlights.length).fill(content.highlightColor || 'var(--color-brand-accent)');
 
     let parts: (string | { text: string; color: string })[] = [content.text];
 
     // 依次处理每个高亮文本
     highlights.forEach((highlight, highlightIndex) => {
-      const color = colors[highlightIndex] || '#F2EC8A';
+      const color = colors[highlightIndex] || 'var(--color-brand-accent)';
       const newParts: (string | { text: string; color: string })[] = [];
 
       parts.forEach((part) => {

@@ -31,8 +31,8 @@ export class SyncService implements OnModuleInit {
     await Promise.all([
       this.subscribeToNewTipBlock(),
       this.subscribeToNewTransaction(),
-      this.subscribeToProposedTransaction(),
-      this.subscribeToRejectedTransaction(),
+      // this.subscribeToProposedTransaction(),
+      // this.subscribeToRejectedTransaction(),
     ]);
   }
 

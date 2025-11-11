@@ -56,31 +56,72 @@
     gap: 291px;
 }
 
+/* Mainnet 柱子样式 */
+:root[data-network="mainnet"] .launch-banner-pillar {
+    background-color: var(--color-surface-default);
+    border-color: var(--color-brand-primary);
+}
+
+/* Testnet 柱子样式 */
+:root[data-network="testnet"] .launch-banner-pillar {
+    background-color: var(--color-surface-testnet-default);
+    border-color: var(--color-brand-testnet-primary);
+}
+
+/* 柱子通用样式 */
 .launch-banner-pillar {
-    background-color: #fbfaee;
     width: 14px;
     height: 32px;
-    border: 2px solid #b77830;
+    border: 2px solid;
 }
 
 /* 主内容区域 */
+
+/* Mainnet 内容区样式 */
+:root[data-network="mainnet"] .launch-banner-content {
+    background-color: var(--color-surface-default);
+    border-color: var(--color-brand-primary);
+}
+
+/* Testnet 内容区样式 */
+:root[data-network="testnet"] .launch-banner-content {
+    background-color: var(--color-surface-testnet-default);
+    border-color: var(--color-brand-testnet-primary);
+}
+
+/* 内容区通用样式 */
 .launch-banner-content {
     display: flex;
     align-items: center;
     width: 440px;
     height: 136px;
-    background-color: #fbfaee;
     padding: 16px;
     gap: 16px;
-    border: 2px solid #b77830;
+    border: 2px solid;
     margin-top: -2px;
 }
 
 /* 火箭图片 */
+
+/* Mainnet 火箭样式 */
+:root[data-network="mainnet"] .launch-banner-rocket {
+    border-color: var(--color-brand-primary);
+}
+
+/* Testnet 火箭样式 */
+:root[data-network="testnet"] .launch-banner-rocket {
+    border-color: var(--color-brand-testnet-primary);
+}
+
+/* 火箭通用样式 */
 .launch-banner-rocket {
     flex-shrink: 0;
     width: 104px;
     height: 104px;
+    border: 2px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .launch-banner-rocket img {
@@ -105,28 +146,51 @@
     flex-direction: column;
 }
 
+/* Mainnet 文字颜色 */
+:root[data-network="mainnet"] .launch-banner-title,
+:root[data-network="mainnet"] .launch-banner-tx-count,
+:root[data-network="mainnet"] .launch-banner-miner,
+:root[data-network="mainnet"] .launch-banner-link-text {
+    color: var(--color-brand-primary);
+}
+
+:root[data-network="mainnet"] .launch-banner-timestamp {
+    color: var(--color-brand-primary-lighter);
+}
+
+:root[data-network="mainnet"] .launch-banner-explorer:hover .launch-banner-link-text {
+    color: var(--color-brand-secondary);
+}
+
+/* Testnet 文字颜色 */
+:root[data-network="testnet"] .launch-banner-title,
+:root[data-network="testnet"] .launch-banner-tx-count,
+:root[data-network="testnet"] .launch-banner-miner,
+:root[data-network="testnet"] .launch-banner-link-text {
+    color: var(--color-brand-testnet-primary);
+}
+
+:root[data-network="testnet"] .launch-banner-timestamp {
+    color: var(--color-brand-testnet-primary-lighter);
+}
+
+:root[data-network="testnet"] .launch-banner-explorer:hover .launch-banner-link-text {
+    color: var(--color-brand-testnet-secondary);
+}
+
+/* 通用文字样式 */
 .launch-banner-title {
-    color: #b77830;
-    font-size: 24px;
-    line-height: 100%;
     font-family: "Jersey 25";
     font-weight: 400;
 }
 
 .launch-banner-timestamp {
-    color: #bda48b;
-    font-size: 10px;
     font-family: "Jersey 25";
-    font-size: 12px;
-    line-height: 100%;
     font-weight: 400;
 }
 
 /* 交易数量 */
 .launch-banner-tx-count {
-    color: #b77830;
-    font-size: 16px;
-    line-height: 100%;
     font-family: "Jersey 25";
 }
 
@@ -137,15 +201,11 @@
 }
 
 .launch-banner-miner {
-    color: #b77830;
-    font-size: 16px;
     font-family: "Jersey 25";
-
-    line-height: 100%;
 }
 
 .launch-banner-miner-address {
-    background-color: #f2ec8a;
+    background-color: var(--color-brand-accent);
 }
 
 /* 浏览器链接 */
@@ -154,7 +214,6 @@
     align-items: center;
     gap: 4px;
     text-decoration: none;
-    font-size: 12px;
 }
 
 .launch-banner-link-icon {
@@ -164,15 +223,7 @@
 }
 
 .launch-banner-link-text {
-    color: #b77830;
-    font-size: 12px;
-    line-height: 100%;
     font-family: "Jersey 25";
-
     text-decoration: underline;
-}
-
-.launch-banner-explorer:hover .launch-banner-link-text {
-    color: #8a5a25;
 }
 

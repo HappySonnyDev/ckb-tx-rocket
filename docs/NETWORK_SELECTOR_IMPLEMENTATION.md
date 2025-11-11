@@ -192,7 +192,7 @@ private networkSelectorRoot!: Root;
 ### 修改颜色
 ```typescript
 // 直接在 htmlTemplate 的 <style> 中修改
-.main-button { border: 2px solid #805CAD; }
+.main-button { border: 2px solid #815CAD; }
 .option-item:hover { background-color: #F0E8F8; }
 .bottom-bar { background-color: #D8BBF0; }
 ```

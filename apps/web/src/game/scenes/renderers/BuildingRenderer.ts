@@ -4,6 +4,7 @@
  */
 
 import { Scene } from "phaser";
+import { networkConfig } from "../../../config/network.config";
 
 export class BuildingRenderer {
     private scene: Scene;
@@ -82,7 +83,8 @@ export class BuildingRenderer {
         this.cake.on("pointerdown", () => this.handleCakeClick());
 
         // King Next
-        this.kingNext = this.scene.add.image(1102, 627, "king_next_testnet");
+        const kingNextKey = networkConfig.getResourceName('king_next');
+        this.kingNext = this.scene.add.image(1102, 627, kingNextKey);
         this.kingNext.setDisplaySize(236, 133);
         this.kingNext.setOrigin(0, 1);
         this.kingNext.setDepth(100);

@@ -4,6 +4,7 @@
  */
 
 import { Scene } from "phaser";
+import { networkConfig } from "../../../config/network.config";
 
 export class RocketAnimator {
     private scene: Scene;
@@ -50,7 +51,8 @@ export class RocketAnimator {
         this.rocket.setVisible(false);
         
         // Change platform to open state
-        this.platform.setTexture("platform_open_testnet");
+        const platformOpenKey = networkConfig.getResourceName('platform_open');
+        this.platform.setTexture(platformOpenKey);
         this.platform.setDisplaySize(232, 94);
         this.platform.setOrigin(0, 1);
         
@@ -150,7 +152,8 @@ export class RocketAnimator {
         this.fire.setVisible(false);
         
         // Reset platform to closed state
-        this.platform.setTexture("platform_testnet");
+        const platformKey = networkConfig.getResourceName('platform');
+        this.platform.setTexture(platformKey);
         this.platform.setDisplaySize(232, 94);
         this.platform.setOrigin(0, 1);
         

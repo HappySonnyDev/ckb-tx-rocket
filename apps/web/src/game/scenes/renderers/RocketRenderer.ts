@@ -4,6 +4,7 @@
  */
 
 import { Scene } from "phaser";
+import { networkConfig } from "../../../config/network.config";
 
 export class RocketRenderer {
     private scene: Scene;
@@ -33,9 +34,17 @@ export class RocketRenderer {
         const grassBottomEdge = 264 + 279 - 75 - 14;
         const rocketY = 264 + 279 - 75 - 59;
         
+        // Get network-specific resource names
+        const tiziKey = networkConfig.getResourceName('tizi');
+        const platformKey = networkConfig.getResourceName('platform');
+        const rocketKey = networkConfig.getResourceName('rocket');
+        const powKey = networkConfig.getResourceName('pow');
+        const kingKey = networkConfig.getResourceName('king');
+        const rocketCloseKey = networkConfig.getResourceName('rocket_close');
+        
         // Tizi (base platform)
         if (this.tizi) this.tizi.destroy();
-        this.tizi = this.scene.add.image(0, grassBottomEdge, "tizi_testnet");
+        this.tizi = this.scene.add.image(0, grassBottomEdge, tiziKey);
         this.tizi.setDisplaySize(154, 286);
         this.tizi.setOrigin(0, 1);
         
@@ -44,14 +53,14 @@ export class RocketRenderer {
         this.platform = this.scene.add.image(
             94,
             grassBottomEdge,
-            "platform_testnet",
+            platformKey,
         );
         this.platform.setDisplaySize(232, 94);
         this.platform.setOrigin(0, 1);
         
         // Rocket (open door)
         if (this.rocket) this.rocket.destroy();
-        this.rocket = this.scene.add.image(153, rocketY, "rocket_testnet");
+        this.rocket = this.scene.add.image(153, rocketY, rocketKey);
         this.rocket.setDisplaySize(116, 332);
         this.rocket.setOrigin(0, 1);
         this.rocket.setInteractive({ useHandCursor: true });
@@ -63,7 +72,7 @@ export class RocketRenderer {
         
         // POW
         if (this.pow) this.pow.destroy();
-        this.pow = this.scene.add.image(96, 264 + 279 - 75 - 202, "pow_testnet");
+        this.pow = this.scene.add.image(96, 264 + 279 - 75 - 202, powKey);
         this.pow.setDisplaySize(78, 145);
         this.pow.setOrigin(0, 1);
         this.pow.setInteractive({ useHandCursor: true });
@@ -75,7 +84,7 @@ export class RocketRenderer {
         
         // King
         if (this.king) this.king.destroy();
-        this.king = this.scene.add.image(15, 264 + 279 - 75 - 261, "king_testnet");
+        this.king = this.scene.add.image(15, 264 + 279 - 75 - 261, kingKey);
         this.king.setDisplaySize(80, 77);
         this.king.setOrigin(0, 1);
         
@@ -84,7 +93,7 @@ export class RocketRenderer {
         this.rocketCloseDoor = this.scene.add.image(
             153,
             rocketY,
-            "rocket_close_testnet",
+            rocketCloseKey,
         );
         this.rocketCloseDoor.setDisplaySize(116, 332);
         this.rocketCloseDoor.setOrigin(0, 1);
