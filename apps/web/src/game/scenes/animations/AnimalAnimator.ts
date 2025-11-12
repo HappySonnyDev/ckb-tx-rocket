@@ -206,7 +206,7 @@ export class AnimalAnimator {
                 fee: selectedAnimal.fee,
                 size: selectedAnimal.size,
                 timestamp: selectedAnimal.timestamp,
-                status: selectedAnimal.status,
+                status: 'PROPOSED' as 'PENDING' | 'PROPOSED' | 'CONFIRMED' | 'REJECTED',
             };
             // Trigger the same click handler as queue animals
             this.scene.handleAnimalClick?.(tempItem);
@@ -260,7 +260,7 @@ export class AnimalAnimator {
                             fee: selectedAnimal.fee,
                             size: selectedAnimal.size,
                             timestamp: selectedAnimal.timestamp,
-                            status: selectedAnimal.status,
+                            status: 'PROPOSED' as 'PENDING' | 'PROPOSED' | 'CONFIRMED' | 'REJECTED',
                         };
                         this.proposedQueue.add(queueItem);
                         console.log(
@@ -330,7 +330,7 @@ export class AnimalAnimator {
                 fee: tx.fee,
                 size: tx.size,
                 timestamp: tx.timestamp,
-                status: tx.status,
+                status: 'PROPOSED' as 'PENDING' | 'PROPOSED' | 'CONFIRMED' | 'REJECTED',
             };
             // Trigger the same click handler as queue animals
             this.scene.handleAnimalClick?.(tempItem);
@@ -401,7 +401,7 @@ export class AnimalAnimator {
                                     fee: tx.fee,
                                     size: tx.size,
                                     timestamp: tx.timestamp,
-                                    status: tx.status,
+                                    status: 'PROPOSED' as 'PENDING' | 'PROPOSED' | 'CONFIRMED' | 'REJECTED',
                                 };
                                 this.proposedQueue.add(queueItem);
                                 console.log(
