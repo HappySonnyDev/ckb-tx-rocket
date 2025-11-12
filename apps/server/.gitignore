@@ -54,6 +54,11 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Database files
 database.db
 database.db-shm
 database.db-wal
+prisma/ckb-*.db
+prisma/ckb-*.db-shm
+prisma/ckb-*.db-wal
