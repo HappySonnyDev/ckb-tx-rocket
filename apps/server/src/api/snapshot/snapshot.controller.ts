@@ -28,8 +28,20 @@ export class SnapshotController {
         this.snapshotService.getProposedTransactionCount(),
       ]);
 
+      // If no blocks exist yet, return empty snapshot
       if (!latestBlock) {
-        throw new HttpException('No blocks found', HttpStatus.NOT_FOUND);
+        const response = {
+          data: {
+            latestBlock: null,
+            pendingTransactions: [],
+            proposedTransactions: [],
+            confirmedTransactions: [],
+            pendingTransactionCount,
+            proposedTransactionCount,
+          },
+          timestamp: new Date().toISOString(),
+        };
+        return SnapshotResponseSchema.parse(response);
       }
 
       // Get confirmed transactions from the latest block

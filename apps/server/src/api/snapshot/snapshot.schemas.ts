@@ -43,7 +43,7 @@ export const SnapshotConfirmedTransactionSchema = z.object({
 });
 
 export const SnapshotDataSchema = z.object({
-  latestBlock: SnapshotLatestBlockSchema,
+  latestBlock: SnapshotLatestBlockSchema.nullable(),
   pendingTransactions: z.array(SnapshotTransactionSchema),
   proposedTransactions: z.array(SnapshotProposedTransactionSchema),
   confirmedTransactions: z.array(SnapshotConfirmedTransactionSchema),
