@@ -7,7 +7,7 @@ import { Scene } from "phaser";
 import { networkConfig } from "../../../config/network.config";
 
 export class RocketRenderer {
-    private scene: Scene;
+    private scene: any; // Game scene with getMainGameAreaBounds()
     
     private tizi!: Phaser.GameObjects.Image;
     private platform!: Phaser.GameObjects.Image;
@@ -20,10 +20,17 @@ export class RocketRenderer {
     private onRocketClick?: () => void;
     private onPowClick?: () => void;
     
-    constructor(scene: Scene, onRocketClick?: () => void, onPowClick?: () => void) {
+    constructor(scene: any, onRocketClick?: () => void, onPowClick?: () => void) {
         this.scene = scene;
         this.onRocketClick = onRocketClick;
         this.onPowClick = onPowClick;
+    }
+    
+    /**
+     * Get the offset for the main game area
+     */
+    private getOffset(): number {
+        return this.scene.getMainGameAreaBounds().left;
     }
     
     /**
@@ -33,6 +40,7 @@ export class RocketRenderer {
         const screenHeight = this.scene.scale.height;
         const grassBottomEdge = 264 + 279 - 75 - 14;
         const rocketY = 264 + 279 - 75 - 59;
+        const offset = this.getOffset();
         
         // Get network-specific resource names
         const tiziKey = networkConfig.getResourceName('tizi');
@@ -44,14 +52,14 @@ export class RocketRenderer {
         
         // Tizi (base platform)
         if (this.tizi) this.tizi.destroy();
-        this.tizi = this.scene.add.image(0, grassBottomEdge, tiziKey);
+        this.tizi = this.scene.add.image(offset + 0, grassBottomEdge, tiziKey);
         this.tizi.setDisplaySize(154, 286);
         this.tizi.setOrigin(0, 1);
         
         // Platform
         if (this.platform) this.platform.destroy();
         this.platform = this.scene.add.image(
-            94,
+            offset + 94,
             grassBottomEdge,
             platformKey,
         );
@@ -60,7 +68,7 @@ export class RocketRenderer {
         
         // Rocket (open door)
         if (this.rocket) this.rocket.destroy();
-        this.rocket = this.scene.add.image(153, rocketY, rocketKey);
+        this.rocket = this.scene.add.image(offset + 153, rocketY, rocketKey);
         this.rocket.setDisplaySize(116, 332);
         this.rocket.setOrigin(0, 1);
         this.rocket.setInteractive({ useHandCursor: true });
@@ -72,7 +80,7 @@ export class RocketRenderer {
         
         // POW
         if (this.pow) this.pow.destroy();
-        this.pow = this.scene.add.image(96, 264 + 279 - 75 - 202, powKey);
+        this.pow = this.scene.add.image(offset + 96, 264 + 279 - 75 - 202, powKey);
         this.pow.setDisplaySize(78, 145);
         this.pow.setOrigin(0, 1);
         this.pow.setInteractive({ useHandCursor: true });
@@ -84,14 +92,14 @@ export class RocketRenderer {
         
         // King
         if (this.king) this.king.destroy();
-        this.king = this.scene.add.image(15, 264 + 279 - 75 - 261, kingKey);
+        this.king = this.scene.add.image(offset + 15, 264 + 279 - 75 - 261, kingKey);
         this.king.setDisplaySize(80, 77);
         this.king.setOrigin(0, 1);
         
         // Rocket close door (initially hidden)
         if (this.rocketCloseDoor) this.rocketCloseDoor.destroy();
         this.rocketCloseDoor = this.scene.add.image(
-            153,
+            offset + 153,
             rocketY,
             rocketCloseKey,
         );
@@ -101,7 +109,7 @@ export class RocketRenderer {
         
         // Fire (initially hidden)
         if (this.fire) this.fire.destroy();
-        this.fire = this.scene.add.image(153 + 58, rocketY - 30, "fire");
+        this.fire = this.scene.add.image(offset + 153 + 58, rocketY - 30, "fire");
         this.fire.setDisplaySize(78, 94);
         this.fire.setOrigin(0.5, 0);
         this.fire.setVisible(false);

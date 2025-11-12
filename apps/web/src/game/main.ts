@@ -12,12 +12,8 @@ const config: Types.Core.GameConfig = {
     height: 1024,
     backgroundColor: "#1a1a2e",
     scale: {
-        mode: Phaser.Scale.FIT,
-        // mode: Phaser.Scale.RESIZE,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
-
-        // width: '100%',
-        // height: '100%',
+        mode: Phaser.Scale.RESIZE,
+        autoCenter: Phaser.Scale.CENTER_HORIZONTALLY,
         parent: "game-container",
     },
     // Enable DOM plugin for HTML element support

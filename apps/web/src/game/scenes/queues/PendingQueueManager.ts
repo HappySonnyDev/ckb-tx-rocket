@@ -12,6 +12,13 @@ import { AnimalFactory } from "../utils/AnimalFactory";
 
 export class PendingQueueManager extends QueueManager {
     /**
+     * Get the offset for the main game area
+     */
+    private getOffset(): number {
+        return (this.scene as any).getMainGameAreaBounds().left;
+    }
+    
+    /**
      * Initializes the pending queue from snapshot data
      * @param transactions - Array of pending transactions
      */
@@ -23,6 +30,8 @@ export class PendingQueueManager extends QueueManager {
         // Clear existing queue first
         this.clear();
         
+        const offset = this.getOffset();
+        
         // Create animals for each transaction (cap to MAX_PENDING_CAPACITY)
         const toCreate = transactions.slice(0, GAME_CONSTANTS.MAX_PENDING_CAPACITY);
         toCreate.forEach((tx, index) => {
@@ -30,6 +39,7 @@ export class PendingQueueManager extends QueueManager {
             const randomOffset = PositionCalculator.generateRandomOffset();
             const basePosition = PositionCalculator.calculatePendingBasePosition(
                 this.queue.length,
+                offset,
             );
             const queuePosition = {
                 x: basePosition.x + randomOffset.x,
@@ -37,12 +47,15 @@ export class PendingQueueManager extends QueueManager {
             };
             
             // Create animal sprite directly at queue position (no animation)
+            const animalSize = AnimalFactory.determineAnimalSize(tx);
             const animal = AnimalFactory.createAnimalSprite(
                 this.scene,
                 queuePosition.x,
                 queuePosition.y,
                 animalType,
                 `${animalType}_b`, // Use queue sprite (背身图片)
+                tx.txType, // Pass transaction type for color tinting
+                animalSize, // Pass animal size
             );
             
             // Add to pending queue
@@ -83,10 +96,12 @@ export class PendingQueueManager extends QueueManager {
             oldPositions.set(animal.sprite, { ...animal.queuePosition });
         });
         
+        const offset = this.getOffset();
+        
         // Arrange all animals in a single triangular formation
         this.queue.forEach((animal, index) => {
             // Calculate base position using the index
-            const basePosition = PositionCalculator.calculatePendingBasePosition(index);
+            const basePosition = PositionCalculator.calculatePendingBasePosition(index, offset);
             
             // Apply the animal's fixed random offset
             const targetX = basePosition.x + animal.randomOffset.x;

@@ -6,7 +6,7 @@
 import { Scene } from "phaser";
 
 export class RoadRenderer {
-    private scene: Scene;
+    private scene: any; // Game scene with getMainGameAreaBounds()
     
     private roadPath!: Phaser.GameObjects.Image;
     private mempoolEntrance!: Phaser.GameObjects.Image;
@@ -28,8 +28,15 @@ export class RoadRenderer {
     private grassBottomBorderLeft!: Phaser.GameObjects.TileSprite;
     private grassBottomBorderRight!: Phaser.GameObjects.TileSprite;
     
-    constructor(scene: Scene) {
+    constructor(scene: any) {
         this.scene = scene;
+    }
+    
+    /**
+     * Get the offset for the main game area
+     */
+    private getOffset(): number {
+        return this.scene.getMainGameAreaBounds().left;
     }
     
     /**
@@ -38,7 +45,8 @@ export class RoadRenderer {
     public renderRoadPath(): void {
         if (this.roadPath) this.roadPath.destroy();
         
-        this.roadPath = this.scene.add.image(357, 370, "lane");
+        const offset = this.getOffset();
+        this.roadPath = this.scene.add.image(offset + 357, 370, "lane");
         this.roadPath.setOrigin(0, 0);
         this.roadPath.setDisplaySize(823, 176);
     }
@@ -69,6 +77,7 @@ export class RoadRenderer {
     public renderRoadGrassBorders(): void {
         const screenWidth = this.scene.scale.width;
         const ROAD_WIDTH = 823;
+        const offset = this.getOffset();
         
         if (this.grassBorderTop) this.grassBorderTop.destroy();
         if (this.grassBorderLeft) this.grassBorderLeft.destroy();
@@ -76,7 +85,7 @@ export class RoadRenderer {
         if (this.grassBorderBottom) this.grassBorderBottom.destroy();
         
         this.grassBorderTop = this.scene.add.tileSprite(
-            357,
+            offset + 357,
             365,
             ROAD_WIDTH,
             12,
@@ -85,7 +94,7 @@ export class RoadRenderer {
         this.grassBorderTop.setOrigin(0, 0);
         
         this.grassBorderLeft = this.scene.add.tileSprite(
-            355,
+            offset + 355,
             372,
             9,
             85,
@@ -94,7 +103,7 @@ export class RoadRenderer {
         this.grassBorderLeft.setOrigin(0, 0);
         
         this.grassBorderRight = this.scene.add.tileSprite(
-            1175,
+            offset + 1175,
             372,
             9,
             85,
@@ -103,7 +112,7 @@ export class RoadRenderer {
         this.grassBorderRight.setOrigin(0, 0);
         
         this.grassBorderBottom = this.scene.add.tileSprite(
-            355,
+            offset + 355,
             448,
             368,
             10,
@@ -117,6 +126,7 @@ export class RoadRenderer {
      */
     public renderGate(): void {
         const roadBottomEdge = 543;
+        const offset = this.getOffset();
         
         if (this.gate) this.gate.destroy();
         if (this.gateText1) this.gateText1.destroy();
@@ -126,7 +136,7 @@ export class RoadRenderer {
         if (this.fenceLeft) this.fenceLeft.destroy();
         if (this.fenceRight) this.fenceRight.destroy();
         
-        this.gate = this.scene.add.image(690, roadBottomEdge, "gate");
+        this.gate = this.scene.add.image(offset + 690, roadBottomEdge, "gate");
         this.gate.setOrigin(0, 1);
         this.gate.setDepth(100); // 设置较高深度，使 Gate 在动物之上
         
@@ -144,7 +154,7 @@ export class RoadRenderer {
         const iconTextGap = 8;
         
         this.gateIcon1 = this.scene.add.image(
-            text1X - 100,
+            offset + text1X - 100,
             text1Y,
             "gate-left"
         );
@@ -153,7 +163,7 @@ export class RoadRenderer {
         this.gateIcon1.setDepth(100); // 与 Gate 同层
         
         this.gateText1 = this.scene.add.text(
-            text1X - 150 + iconSize / 2 + iconTextGap+50,
+            offset + text1X - 150 + iconSize / 2 + iconTextGap+50,
             text1Y,
             "PROPOSED QUEUE:0",
             gateTextStyle,
@@ -166,7 +176,7 @@ export class RoadRenderer {
         const text2Y = 385;
         
         this.gateIcon2 = this.scene.add.image(
-            text2X - 100,
+            offset + text2X - 100,
             text2Y,
             "gate-bottom"
         );
@@ -175,7 +185,7 @@ export class RoadRenderer {
         this.gateIcon2.setDepth(100); // 与 Gate 同层
         
         this.gateText2 = this.scene.add.text(
-            text2X - 150 + iconSize / 2 + iconTextGap + 50,
+            offset + text2X - 150 + iconSize / 2 + iconTextGap + 50,
             text2Y,
             "PENDING QUEUE:0",
             gateTextStyle,
@@ -183,23 +193,28 @@ export class RoadRenderer {
         this.gateText2.setOrigin(0, 0.5);
         this.gateText2.setDepth(100); // 与 Gate 同层
         
-        const fenceWidth = 690;
         const fenceHeight = 75;
+        const screenWidth = this.scene.scale.width;
         
+        // 左侧栅栏：从屏幕左侧(0)延伸到 offset + 690
+        const fenceLeftWidth = offset + 690;
         this.fenceLeft = this.scene.add.tileSprite(
             0,
             roadBottomEdge,
-            fenceWidth,
+            fenceLeftWidth,
             fenceHeight,
             "fence-left",
         );
         this.fenceLeft.setOrigin(0, 1);
         this.fenceLeft.setDepth(100); // 与 Gate 同层
         
+        // 右侧栅栏：从 offset + 1200 延伸到屏幕右侧
+        const fenceRightX = offset + 1200;
+        const fenceRightWidth = screenWidth - fenceRightX;
         this.fenceRight = this.scene.add.tileSprite(
-            1200,
+            fenceRightX,
             roadBottomEdge,
-            258,
+            fenceRightWidth,
             fenceHeight,
             "fence-right",
         );
@@ -212,23 +227,30 @@ export class RoadRenderer {
      */
     public renderGrassBottomBorders(): void {
         const grassBottomHeight = 12;
+        const offset = this.getOffset();
+        const screenWidth = this.scene.scale.width;
         
         if (this.grassBottomBorderLeft) this.grassBottomBorderLeft.destroy();
         if (this.grassBottomBorderRight) this.grassBottomBorderRight.destroy();
         
+        // 左侧草地边框：对应左侧栅栏范围
+        const grassLeftWidth = offset + 690;
         this.grassBottomBorderLeft = this.scene.add.tileSprite(
             0,
             546,
-            736,
+            grassLeftWidth,
             grassBottomHeight,
             "grass-left-bottom",
         );
         this.grassBottomBorderLeft.setOrigin(0, 1);
         
+        // 右侧草地边框：对应右侧栅栏范围
+        const grassRightX = offset + 1200;
+        const grassRightWidth = screenWidth - grassRightX;
         this.grassBottomBorderRight = this.scene.add.tileSprite(
-            1170,
+            grassRightX,
             546,
-            258,
+            grassRightWidth,
             grassBottomHeight,
             "grass-right-bottom",
         );
@@ -245,6 +267,16 @@ export class RoadRenderer {
         if (this.gateText2) {
             this.gateText2.setText(`PENDING QUEUE:${pending}`);
         }
+    }
+    
+    /**
+     * Gets the Y position of the mempool entrance center
+     */
+    public getMempoolY(): number {
+        const screenHeight = this.scene.scale.height;
+        const topHeight = 266 + 266;
+        const bottomHeight = screenHeight - topHeight;
+        return topHeight + bottomHeight / 2;
     }
     
     /**

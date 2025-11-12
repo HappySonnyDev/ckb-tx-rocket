@@ -10,7 +10,15 @@ import {
     GAME_CONSTANTS,
 } from "../types/GameTypes";
 import { EnhancedTransaction } from "../../../services/CKBChainVizService";
-import { getAnimalTypeByFeeRate } from "../../../utils/feeRateUtils";
+import { getAnimalTypeByFeeRate, getAnimalSize, AnimalSize } from "../../../utils/feeRateUtils";
+import { TX_TYPE_COLORS } from "../../../config/transaction.config";
+
+/**
+ * Transaction type color mapping
+ * Colors are applied as tint to animal sprites
+ * @see TX_TYPE_COLORS in transaction.config.ts
+ */
+
 
 export class AnimalFactory {
     /**
@@ -46,6 +54,8 @@ export class AnimalFactory {
      * @param y - Y position
      * @param type - Animal type
      * @param texture - Texture key (optional, defaults to type)
+     * @param txType - Transaction type for color tinting (optional)
+     * @param size - Animal size in pixels (optional, uses default if not provided)
      * @returns Created sprite
      */
     public static createAnimalSprite(
@@ -54,11 +64,45 @@ export class AnimalFactory {
         y: number,
         type: AnimalType,
         texture?: string,
+        txType?: string | null,
+        size?: number,
     ): Phaser.GameObjects.Image {
         const animal = scene.add.image(x, y, texture || type);
-        animal.setDisplaySize(GAME_CONSTANTS.ANIMAL_SIZE, GAME_CONSTANTS.ANIMAL_SIZE);
+        const displaySize = size ?? GAME_CONSTANTS.ANIMAL_SIZE;
+        animal.setDisplaySize(displaySize, displaySize);
         animal.setOrigin(0.5, 0.5);
+        
+        // Apply color tint based on transaction type
+        if (txType && TX_TYPE_COLORS[txType]) {
+            // Convert hex color to Phaser color number
+            const color = parseInt(TX_TYPE_COLORS[txType].replace('#', ''), 16);
+            animal.setTint(color);
+        }
+        // If no txType or not in config, use default (no tint)
+        
         return animal;
+    }
+    
+    /**
+     * Determines animal size based on transaction data
+     * @param tx - Transaction data
+     * @returns Animal size in pixels, or default size if feeRate is not available
+     */
+    public static determineAnimalSize(
+        tx: EnhancedTransaction,
+    ): number {
+        // If transaction has feeRate, use it to determine size
+        if (tx.feeRate) {
+            const feeRate = parseFloat(tx.feeRate);
+            if (!isNaN(feeRate)) {
+                const animalType = getAnimalTypeByFeeRate(feeRate);
+                const size = getAnimalSize(animalType as any, feeRate);
+                return size;
+            }
+        }
+        
+        // Fallback: use default size
+        return GAME_CONSTANTS.ANIMAL_SIZE;
     }
     
     /**

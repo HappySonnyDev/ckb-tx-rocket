@@ -94,8 +94,9 @@ export class Game extends Scene {
         this.load.image("meseum", "meseum.png");
         this.load.image("fire", "fire.png");
         
-        // Load network-specific resources
-        this.loadNetworkResources();
+        // Load ALL network-specific resources for both networks
+        // This prevents flashing when switching networks for the first time
+        this.loadAllNetworkResources();
 
         // Load animal sprites for animation
         this.load.svg("rabbit", "rabbit.svg");
@@ -111,17 +112,24 @@ export class Game extends Scene {
     }
     
     /**
-     * Load network-specific resources based on current network mode
+     * Load ALL network-specific resources for both mainnet and testnet
+     * This ensures smooth network switching without loading delays
      */
-    private loadNetworkResources(): void {
-        const mode = networkConfig.getMode();
-        console.log(`🔄 Loading resources for ${mode}`);
+    private loadAllNetworkResources(): void {
+        console.log('🔄 Preloading resources for both networks...');
         
-        NETWORK_SPECIFIC_RESOURCES.forEach(resource => {
-            const resourceKey = networkConfig.getResourceName(resource);
-            const resourceFile = `${resourceKey}.png`;
-            this.load.image(resourceKey, resourceFile);
+        // Load resources for both networks
+        const networks: ('mainnet' | 'testnet')[] = ['mainnet', 'testnet'];
+        
+        networks.forEach(network => {
+            NETWORK_SPECIFIC_RESOURCES.forEach(resource => {
+                const resourceKey = `${resource}_${network}`;
+                const resourceFile = `${resourceKey}.png`;
+                this.load.image(resourceKey, resourceFile);
+            });
         });
+        
+        console.log('✅ All network resources queued for loading');
     }
 
     /**
@@ -334,8 +342,9 @@ export class Game extends Scene {
 
     /**
      * Handles animal click event - shows transaction detail popup
+     * Public method that can be called from AnimalAnimator for in-flight animals
      */
-    private handleAnimalClick(animal: AnimalQueueItem): void {
+    public handleAnimalClick(animal: AnimalQueueItem): void {
         if (!animal.txHash) return;
 
         console.log(`🐾 Animal clicked: ${animal.type}, txHash: ${animal.txHash}`);
@@ -438,9 +447,24 @@ export class Game extends Scene {
         this.mainGameAreaRightBound =
             screenCenterX + this.MAIN_GAME_AREA_WIDTH / 2;
 
-        // Re-render backgrounds
+        // Re-render all game elements with new offset
         this.backgroundRenderer.renderSkyBackground();
         this.backgroundRenderer.renderGrassBackground();
+        this.roadRenderer.renderMempool();
+        this.roadRenderer.renderRoadPath();
+        this.roadRenderer.renderRoadGrassBorders();
+        this.roadRenderer.renderGate();
+        this.roadRenderer.renderGrassBottomBorders();
+        this.rocketRenderer.renderRocket();
+        this.buildingRenderer.renderBuildings();
+        
+        // Re-arrange queues with new offset
+        this.pendingQueueManager.arrangeQueue();
+        this.proposedQueueManager.arrangeQueue();
+        
+        // Re-setup click listeners for all animals after resize
+        // this.setupAnimalClickListeners(this.pendingQueueManager.getQueue());
+        // this.setupAnimalClickListeners(this.proposedQueueManager.getQueue());
     }
 
     /**
@@ -456,6 +480,13 @@ export class Game extends Scene {
             right: this.mainGameAreaRightBound,
             width: this.MAIN_GAME_AREA_WIDTH,
         };
+    }
+    
+    /**
+     * Gets the Y position of the mempool entrance center
+     */
+    public getMempoolY(): number {
+        return this.roadRenderer.getMempoolY();
     }
 
     /**
@@ -592,9 +623,10 @@ export class Game extends Scene {
         }
         
         const type = AnimalFactory.determineAnimalType(tx, 0);
+        const animalSize = AnimalFactory.determineAnimalSize(tx);
         this.animalAnimator.schedulePendingArrival(() => {
             this.animalAnimator.incrementPendingInFlight();
-            this.animalAnimator.spawnAnimalToPending(type, tx.txHash, tx.txType, tx.fee, tx.size, tx.timestamp, tx.status);
+            this.animalAnimator.spawnAnimalToPending(type, animalSize, tx.txHash, tx.txType, tx.fee, tx.size, tx.timestamp, tx.status);
         });
     }
 

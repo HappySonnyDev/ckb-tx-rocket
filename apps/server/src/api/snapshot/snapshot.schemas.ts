@@ -66,3 +66,19 @@ export type SnapshotConfirmedTransaction = z.infer<
 >;
 export type SnapshotData = z.infer<typeof SnapshotDataSchema>;
 export type SnapshotResponse = z.infer<typeof SnapshotResponseSchema>;
+
+// TX Pool Info Schema
+export const TxPoolInfoResponseSchema = z.object({
+  data: z.object({
+    pending: z.string(), // hex string
+    proposed: z.string(), // hex string
+    orphan: z.string(), // hex string
+    total_tx_size: z.string(), // hex string
+    total_tx_cycles: z.string(), // hex string
+    min_fee_rate: z.string(), // hex string
+    last_txs_updated_at: z.string(), // hex string
+  }),
+  timestamp: z.string(),
+});
+
+export type TxPoolInfoResponse = z.infer<typeof TxPoolInfoResponseSchema>;

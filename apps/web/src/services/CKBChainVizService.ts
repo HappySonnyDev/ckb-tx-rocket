@@ -292,6 +292,27 @@ export class CKBChainVizService {
     get connected(): boolean {
         return this.isConnected;
     }
+
+    /**
+     * Fetches transaction pool info from CKB RPC
+     * @returns Promise containing transaction pool info (all values are hex strings)
+     */
+    async getTxPoolInfo(): Promise<{
+        pending: string; // hex string, e.g., "0x1a7"
+        proposed: string; // hex string
+        orphan: string; // hex string
+        total_tx_size: string; // hex string
+        total_tx_cycles: string; // hex string
+        min_fee_rate: string; // hex string
+        last_txs_updated_at: string; // hex string timestamp
+    }> {
+        const response = await fetch(`${this.baseUrl}/api/v1/tx-pool-info`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch tx pool info: ${response.statusText}`);
+        }
+        const result = await response.json();
+        return result.data;
+    }
 }
 
 /**

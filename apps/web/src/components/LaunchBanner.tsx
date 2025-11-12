@@ -51,7 +51,7 @@ export function LaunchBanner({ blockData, show, onHide }: LaunchBannerProps) {
           setVisible(false);
           onHide();
         }, 500); // 动画持续时间
-      }, 3000);
+      }, 1000);
 
       return () => clearTimeout(timer);
     }

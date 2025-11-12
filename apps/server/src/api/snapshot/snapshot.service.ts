@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma.service';
+import { CkbRpcService } from '../../core/ckb/ckb-rpc.service';
 
 @Injectable()
 export class SnapshotService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ckbRpcService: CkbRpcService,
+  ) {}
 
   async getLatestBlock() {
     return this.prisma.block.findFirst({
@@ -95,5 +99,21 @@ export class SnapshotService {
         status: 'PROPOSED',
       },
     });
+  }
+
+  /**
+   * Get transaction pool info from CKB node via RPC
+   * @returns Transaction pool information (all values are hex strings)
+   */
+  async getTxPoolInfo(): Promise<{
+    pending: string; // hex string
+    proposed: string; // hex string
+    orphan: string; // hex string
+    total_tx_size: string; // hex string
+    total_tx_cycles: string; // hex string
+    min_fee_rate: string; // hex string
+    last_txs_updated_at: string; // hex string timestamp
+  }> {
+    return this.ckbRpcService.getTxPoolInfo();
   }
 }

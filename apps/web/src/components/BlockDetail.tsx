@@ -55,10 +55,17 @@ interface BlockDetailProps {
 export function BlockDetail({ visible, data, x, y, screenWidth, screenHeight, onClose }: BlockDetailProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<'info' | 'transactions'>('info');
+  const isShowingRef = useRef(false);
 
   // 点击外部区域关闭
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      isShowingRef.current = false;
+      return;
+    }
+
+    // 设置一个标志，防止在显示弹框的同一次点击事件中立即关闭它
+    isShowingRef.current = true;
 
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -71,10 +78,14 @@ export function BlockDetail({ visible, data, x, y, screenWidth, screenHeight, on
       onClose?.();
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    EventBus.on('canvas-clicked', handleCanvasClick);
+    // 使用 setTimeout 延迟注册事件监听器，防止同一次点击事件立即触发关闭
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+      EventBus.on('canvas-clicked', handleCanvasClick);
+    }, 100); // 100ms 延迟，等待 DOM 渲染完成和事件冒泡结束
 
     return () => {
+      clearTimeout(timeoutId);
       document.removeEventListener('mousedown', handleClickOutside);
       EventBus.off('canvas-clicked', handleCanvasClick);
     };

@@ -12,6 +12,13 @@ import { AnimalFactory } from "../utils/AnimalFactory";
 
 export class ProposedQueueManager extends QueueManager {
     /**
+     * Get the offset for the main game area
+     */
+    private getOffset(): number {
+        return (this.scene as any).getMainGameAreaBounds().left;
+    }
+    
+    /**
      * Initializes the proposed queue from snapshot data
      * @param transactions - Array of proposed transactions
      */
@@ -23,6 +30,8 @@ export class ProposedQueueManager extends QueueManager {
         // Clear existing proposed queue first
         this.clear();
         
+        const offset = this.getOffset();
+        
         // Create animals for each transaction (cap to MAX_PROPOSED_CAPACITY)
         const toCreate = transactions.slice(0, GAME_CONSTANTS.MAX_PROPOSED_CAPACITY);
         toCreate.forEach((tx, index) => {
@@ -30,6 +39,7 @@ export class ProposedQueueManager extends QueueManager {
             const randomOffset = PositionCalculator.generateRandomOffset();
             const position = PositionCalculator.calculateProposedPosition(
                 this.queue.length,
+                offset,
             );
             const queuePosition = {
                 x: position.x + randomOffset.x,
@@ -38,12 +48,15 @@ export class ProposedQueueManager extends QueueManager {
             
             // Create animal sprite directly at proposed position (no animation)
             // Use left-facing sprite since animals in proposed queue face left
+            const animalSize = AnimalFactory.determineAnimalSize(tx);
             const animal = AnimalFactory.createAnimalSprite(
                 this.scene,
                 queuePosition.x,
                 queuePosition.y,
                 animalType,
                 animalType, // Use left-facing sprite
+                tx.txType, // Pass transaction type for color tinting
+                animalSize, // Pass animal size
             );
             animal.setFlipX(false); // Face left
             
@@ -85,9 +98,11 @@ export class ProposedQueueManager extends QueueManager {
             oldPositions.set(animal.sprite, { ...animal.queuePosition });
         });
         
+        const offset = this.getOffset();
+        
         // Arrange animals based on their current sorted index (vertical filling)
         this.queue.forEach((animal, index) => {
-            const position = PositionCalculator.calculateProposedPosition(index);
+            const position = PositionCalculator.calculateProposedPosition(index, offset);
             const targetX = position.x + animal.randomOffset.x;
             const targetY = position.y + animal.randomOffset.y;
             

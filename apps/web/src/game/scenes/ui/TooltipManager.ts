@@ -43,6 +43,7 @@ export class TooltipManager {
      * Updates the tooltip display
      */
     private updateTooltip(): void {
+        console.log('🔄 TooltipManager.updateTooltip called, visible:', this.currentTooltip.visible);
         if (this.tooltipRoot) {
             this.tooltipRoot.render(
                 createElement(Tooltip, {
@@ -55,6 +56,8 @@ export class TooltipManager {
                     onClose: () => this.hideTooltip(),
                 }),
             );
+        } else {
+            console.log('⚠️ TooltipManager.tooltipRoot is not initialized!');
         }
     }
     
@@ -68,6 +71,7 @@ export class TooltipManager {
         width?: number | string,
         height?: number | string,
     ): void {
+        console.log('📍 TooltipManager.showTooltip called:', { x, y, width, height, text: content.text?.substring(0, 50) });
         this.currentTooltip = { visible: true, content, x, y, width, height };
         this.updateTooltip();
     }
@@ -76,6 +80,8 @@ export class TooltipManager {
      * Hides the current tooltip
      */
     public hideTooltip(): void {
+        console.log('❌ TooltipManager.hideTooltip called, stack trace:');
+        console.trace();
         this.currentTooltip.visible = false;
         this.updateTooltip();
     }

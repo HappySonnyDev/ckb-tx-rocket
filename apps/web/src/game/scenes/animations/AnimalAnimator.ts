@@ -12,7 +12,7 @@ import { ProposedQueueManager } from "../queues/ProposedQueueManager";
 import { EnhancedTransaction } from "../../../services/CKBChainVizService";
 
 export class AnimalAnimator {
-    private scene: Scene;
+    private scene: any; // Game scene with getMainGameAreaBounds()
     private pendingQueue: PendingQueueManager;
     private proposedQueue: ProposedQueueManager;
     private onAnimalAdded?: (animal: AnimalQueueItem) => void;
@@ -23,7 +23,7 @@ export class AnimalAnimator {
     private nextProposedArrivalTimeMs: number = 0;
     
     constructor(
-        scene: Scene,
+        scene: any,
         pendingQueue: PendingQueueManager,
         proposedQueue: ProposedQueueManager,
         onAnimalAdded?: (animal: AnimalQueueItem) => void,
@@ -35,26 +35,42 @@ export class AnimalAnimator {
     }
     
     /**
+     * Get the offset for the main game area
+     */
+    private getOffset(): number {
+        return this.scene.getMainGameAreaBounds().left;
+    }
+    
+    /**
      * Spawns a single animal and animates it to pending queue position
      */
-    public spawnAnimalToPending(type: AnimalType, txHash?: string, txType?: string | null, fee?: string, size?: string, timestamp?: string, status?: 'PENDING' | 'PROPOSED' | 'CONFIRMED' | 'REJECTED'): void {
-        console.log(`🐾 Spawn to pending: type=${type}, txHash=${txHash ?? "N/A"}`);
+    public spawnAnimalToPending(type: AnimalType, animalSize: number, txHash?: string, txType?: string | null, fee?: string, size?: string, timestamp?: string, status?: 'PENDING' | 'PROPOSED' | 'CONFIRMED' | 'REJECTED'): void {
+        console.log(`🐾 Spawn to pending: type=${type}, size=${animalSize}px, txHash=${txHash ?? "N/A"}`);
+        
+        const offset = this.getOffset();
+        const mempoolY = this.scene.getMempoolY();
+        
         // Create animal sprite at Mempool exit
         const animal = AnimalFactory.createAnimalSprite(
             this.scene,
             GAME_CONSTANTS.MEMPOOL_START_X,
-            GAME_CONSTANTS.MEMPOOL_Y,
+            mempoolY,
             type,
             type, // Use running sprite
+            txType, // Pass transaction type for color tinting
+            animalSize, // Pass animal size
         );
-        animal.setFlipX(true); // Face right
+        animal.setFlipX(true);
+        
+        // Set interactive immediately for in-flight animals
+        animal.setInteractive({ useHandCursor: true }); // Face right
         
         // Generate fixed random offset
         const randomOffset = PositionCalculator.generateRandomOffset();
         
         // Calculate target position in pending queue
         const tempQueueLength = this.pendingQueue.getLength();
-        const basePosition = PositionCalculator.calculatePendingBasePosition(tempQueueLength);
+        const basePosition = PositionCalculator.calculatePendingBasePosition(tempQueueLength, offset);
         console.log(
             `   Planned pending target index=${tempQueueLength}, base=(${basePosition.x},${basePosition.y})`,
         );
@@ -62,6 +78,28 @@ export class AnimalAnimator {
             x: basePosition.x + randomOffset.x,
             y: basePosition.y + randomOffset.y,
         };
+        
+        // Setup temporary click listener for in-flight animal
+        const tempClickHandler = () => {
+            if (txHash && this.onAnimalAdded) {
+                // Create a temporary queue item for the in-flight animal
+                const tempItem: AnimalQueueItem = {
+                    sprite: animal,
+                    type: type,
+                    queuePosition: { x: animal.x, y: animal.y },
+                    randomOffset: randomOffset,
+                    txHash,
+                    txType,
+                    fee,
+                    size,
+                    timestamp,
+                    status,
+                };
+                // Trigger the same click handler as queue animals
+                this.scene.handleAnimalClick?.(tempItem);
+            }
+        };
+        animal.on('pointerdown', tempClickHandler);
         
         // Calculate movement duration based on animal speed
         const speed = AnimalFactory.getAnimalSpeed(type);
@@ -116,7 +154,8 @@ export class AnimalAnimator {
                 };
                 this.pendingQueue.add(queueItem);
                 
-                // Setup click listener for the new animal
+                // Remove temporary click listener and setup permanent one
+                animal.off('pointerdown');
                 if (this.onAnimalAdded) {
                     this.onAnimalAdded(queueItem);
                 }
@@ -144,13 +183,37 @@ export class AnimalAnimator {
             `🚚 Move pending->proposed: index=${index}, txHash=${selectedAnimal.txHash ?? "N/A"}, type=${selectedAnimal.type}`,
         );
         
+        const offset = this.getOffset();
         const proposedPosition = PositionCalculator.calculateProposedPosition(
             this.proposedQueue.getLength(),
+            offset,
         );
         const speed = AnimalFactory.getAnimalSpeed(selectedAnimal.type);
         const upwardY = 400;
         const upDistance = Math.abs(selectedAnimal.sprite.y - upwardY);
         const upDuration = (upDistance / speed) * 1000;
+        
+        // Setup temporary click listener for in-flight animal during transition
+        const tempClickHandler = () => {
+            // Create a temporary queue item for the in-flight animal
+            const tempItem: AnimalQueueItem = {
+                sprite: selectedAnimal.sprite,
+                type: selectedAnimal.type,
+                queuePosition: { x: selectedAnimal.sprite.x, y: selectedAnimal.sprite.y },
+                randomOffset: selectedAnimal.randomOffset,
+                txHash: selectedAnimal.txHash,
+                txType: selectedAnimal.txType,
+                fee: selectedAnimal.fee,
+                size: selectedAnimal.size,
+                timestamp: selectedAnimal.timestamp,
+                status: selectedAnimal.status,
+            };
+            // Trigger the same click handler as queue animals
+            this.scene.handleAnimalClick?.(tempItem);
+        };
+        // Remove old listeners and add temporary one
+        selectedAnimal.sprite.removeAllListeners('pointerdown');
+        selectedAnimal.sprite.on('pointerdown', tempClickHandler);
         
         // Step 1: Move upward
         this.scene.tweens.add({
@@ -204,7 +267,8 @@ export class AnimalAnimator {
                             `➕ Added to proposed: txHash=${selectedAnimal.txHash ?? "N/A"}, type=${selectedAnimal.type}`,
                         );
                         
-                        // Setup click listener for the animal in new queue
+                        // Remove temporary click listener and setup permanent one
+                        selectedAnimal.sprite.off('pointerdown');
                         if (this.onAnimalAdded) {
                             this.onAnimalAdded(queueItem);
                         }
@@ -229,10 +293,13 @@ export class AnimalAnimator {
         console.log(`🛰️ Proposed fallback start: txHash=${tx.txHash}`);
         this.proposedInFlight++;
         
+        const offset = this.getOffset();
         const type = AnimalFactory.determineAnimalType(tx, 0);
+        const animalSize = AnimalFactory.determineAnimalSize(tx);
         const randomOffset = PositionCalculator.generateRandomOffset();
         const stagingPos = PositionCalculator.calculatePendingStagingPosition(
             this.pendingQueue.getLength(),
+            offset,
         );
         
         const ghost = AnimalFactory.createAnimalSprite(
@@ -241,9 +308,34 @@ export class AnimalAnimator {
             stagingPos.y + randomOffset.y,
             type,
             `${type}_b`,
+            tx.txType, // Pass transaction type for color tinting
+            animalSize, // Pass animal size
         );
         ghost.setFlipX(true);
         ghost.setAlpha(0);
+        
+        // Set interactive immediately for in-flight ghost animal
+        ghost.setInteractive({ useHandCursor: true });
+        
+        // Setup temporary click listener for in-flight ghost animal
+        const tempClickHandler = () => {
+            // Create a temporary queue item for the in-flight ghost animal
+            const tempItem: AnimalQueueItem = {
+                sprite: ghost,
+                type,
+                queuePosition: { x: ghost.x, y: ghost.y },
+                randomOffset,
+                txHash: tx.txHash,
+                txType: tx.txType,
+                fee: tx.fee,
+                size: tx.size,
+                timestamp: tx.timestamp,
+                status: tx.status,
+            };
+            // Trigger the same click handler as queue animals
+            this.scene.handleAnimalClick?.(tempItem);
+        };
+        ghost.on('pointerdown', tempClickHandler);
         
         const speed = AnimalFactory.getAnimalSpeed(type);
         const upwardY = 400;
@@ -267,6 +359,7 @@ export class AnimalAnimator {
                         
                         const baseProposed = PositionCalculator.calculateProposedPosition(
                             this.proposedQueue.getLength(),
+                            offset,
                         );
                         const targetX = baseProposed.x + randomOffset.x;
                         const targetY = baseProposed.y + randomOffset.y;
@@ -315,7 +408,8 @@ export class AnimalAnimator {
                                     `➕ Fallback added to proposed: txHash=${tx.txHash}, type=${type}`,
                                 );
                                 
-                                // Setup click listener for the new animal
+                                // Remove temporary click listener and setup permanent one
+                                ghost.off('pointerdown');
                                 if (this.onAnimalAdded) {
                                     this.onAnimalAdded(queueItem);
                                 }

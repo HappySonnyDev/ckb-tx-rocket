@@ -131,9 +131,9 @@ export class SyncService implements OnModuleInit {
             const pendingPayload: TransactionPendingPayload = {
               txHash: parsedTx.transaction.hash,
               timestamp: new Date().toISOString(),
-              fee: parsedTx.fee,
+              fee: BigInt(parsedTx.fee).toString(), // Convert hex to decimal string
               feeRate: this.calculateFeeRate(parsedTx.fee, parsedTx.size),
-              size: parsedTx.size,
+              size: BigInt(parsedTx.size).toString(), // Convert hex to decimal string
               cycles: parsedTx.cycles,
               txType: txType,
             };
@@ -176,9 +176,9 @@ export class SyncService implements OnModuleInit {
             const proposedPayload: TransactionProposedPayload = {
               txHash: parsedTx.transaction.hash,
               timestamp: new Date().toISOString(),
-              fee: parsedTx.fee,
+              fee: BigInt(parsedTx.fee).toString(), // Convert hex to decimal string
               feeRate: this.calculateFeeRate(parsedTx.fee, parsedTx.size),
-              size: parsedTx.size,
+              size: BigInt(parsedTx.size).toString(), // Convert hex to decimal string
               txType: txType,
               context: {
                 blockNumber: this.lastBlockNumber?.toString() || '0',

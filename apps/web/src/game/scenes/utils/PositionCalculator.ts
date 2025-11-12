@@ -10,9 +10,10 @@ export class PositionCalculator {
      * Calculates the base queue position (without random offset) based on queue index
      * Uses triangular formation for pending queue
      * @param index - Index in the sorted queue
+     * @param offsetX - Optional X offset for main game area (default: 0)
      * @returns Base position coordinates
      */
-    public static calculatePendingBasePosition(index: number): Position {
+    public static calculatePendingBasePosition(index: number, offsetX: number = 0): Position {
         const baseX = GAME_CONSTANTS.QUEUE_START_X;
         const baseY = GAME_CONSTANTS.QUEUE_BASE_Y;
         
@@ -35,7 +36,7 @@ export class PositionCalculator {
         const colSpacing = GAME_CONSTANTS.PENDING_COL_SPACING;
         
         // Calculate position with triangular offset (centered)
-        const x = baseX + col * colSpacing - (row * colSpacing) / 2;
+        const x = offsetX + baseX + col * colSpacing - (row * colSpacing) / 2;
         const y = baseY + row * rowSpacing;
         
         return { x, y };
@@ -46,9 +47,10 @@ export class PositionCalculator {
      * Arranged by arrival order in vertical columns
      * Fill vertically: column 1 fills top to bottom, then column 2, etc.
      * @param queueIndex - Current queue length (arrival order)
+     * @param offsetX - Optional X offset for main game area (default: 0)
      * @returns Position coordinates
      */
-    public static calculateProposedPosition(queueIndex: number): Position {
+    public static calculateProposedPosition(queueIndex: number, offsetX: number = 0): Position {
         const colSpacing = GAME_CONSTANTS.PROPOSED_COL_SPACING;
         const rowSpacing = GAME_CONSTANTS.PROPOSED_ROW_SPACING;
         const rowsPerColumn = GAME_CONSTANTS.PROPOSED_ROWS_PER_COLUMN;
@@ -61,7 +63,7 @@ export class PositionCalculator {
         const baseX = GAME_CONSTANTS.CHECKPOINT_START_X;
         const baseY = GAME_CONSTANTS.CHECKPOINT_BASE_Y;
         
-        const x = baseX + col * colSpacing;
+        const x = offsetX + baseX + col * colSpacing;
         const y = baseY + row * rowSpacing;
         
         return { x, y };
@@ -70,14 +72,15 @@ export class PositionCalculator {
     /**
      * Calculates a pending staging position (temporary starting point for fallback animation)
      * @param queueLength - Current queue length
+     * @param offsetX - Optional X offset for main game area (default: 0)
      * @returns Position coordinates
      */
-    public static calculatePendingStagingPosition(queueLength: number): Position {
+    public static calculatePendingStagingPosition(queueLength: number, offsetX: number = 0): Position {
         const indexForStaging = Math.max(
             0,
             Math.min(queueLength, GAME_CONSTANTS.MAX_PENDING_CAPACITY - 1),
         );
-        return this.calculatePendingBasePosition(indexForStaging);
+        return this.calculatePendingBasePosition(indexForStaging, offsetX);
     }
     
     /**

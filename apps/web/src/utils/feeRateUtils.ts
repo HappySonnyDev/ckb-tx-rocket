@@ -14,17 +14,53 @@ export enum AnimalType {
 }
 
 /**
+ * 动物大小枚举
+ */
+export enum AnimalSize {
+  SMALL = 32,   // 小动物 32x32
+  MEDIUM = 44,  // 中动物 44x44
+  LARGE = 56,   // 大动物 56x56
+}
+
+/**
  * 手续费率固定档位配置（基于 P33 和 P66 百分位数）
- * 数据来源：分析了 4340 笔交易的 fee/size 比值
- * - P33: 3.0197 shannon/byte
- * - P66: 4.0817 shannon/byte
+ * 数据来源：分析了 8249 笔交易的 fee/size 比值
+ * - P33: 3.0288 shannon/byte
+ * - P66: 4.0930 shannon/byte
  */
 export const FEE_RATE_TIERS = {
   /** 乌龟档位最大值（< 此值为乌龟） */
-  TURTLE_MAX: 3.02,
+  TURTLE_MAX: 3.0288,
   /** 猪档位最大值（>= TURTLE_MAX 且 < 此值为猪） */
-  PIG_MAX: 4.08,
+  PIG_MAX: 4.0930,
   /** 兔子档位（>= PIG_MAX 为兔子） */
+} as const;
+
+/**
+ * 乌龟大小细分档位（基于乌龟交易内部的 P33 和 P66 百分位数）
+ */
+export const TURTLE_SIZE_TIERS = {
+  SMALL_MAX: 2.0191,   // 32x32
+  MEDIUM_MAX: 2.6122,  // 44x44
+  // >= MEDIUM_MAX: 56x56
+} as const;
+
+/**
+ * 猪大小细分档位（基于猪交易内部的 P33 和 P66 百分位数）
+ */
+export const PIG_SIZE_TIERS = {
+  SMALL_MAX: 3.3437,   // 32x32
+  MEDIUM_MAX: 3.6953,  // 44x44
+  // >= MEDIUM_MAX: 56x56
+} as const;
+
+/**
+ * 兔子大小细分档位（基于兔子交易内部的 P33 和 P66 百分位数）
+ */
+export const RABBIT_SIZE_TIERS = {
+  SMALL_MAX: 4.5465,   // 32x32
+  MEDIUM_MAX: 5.0282,  // 44x44
+  // >= MEDIUM_MAX: 56x56
 } as const;
 
 /**
@@ -39,6 +75,41 @@ export function getAnimalTypeByFeeRate(feeRate: number): AnimalType {
     return AnimalType.PIG;
   } else {
     return AnimalType.RABBIT;
+  }
+}
+
+/**
+ * 根据动物类型和手续费率获取动物大小
+ * @param animalType 动物类型
+ * @param feeRate 手续费率 (shannon/byte)
+ * @returns 动物大小（像素）
+ */
+export function getAnimalSize(animalType: AnimalType, feeRate: number): AnimalSize {
+  switch (animalType) {
+    case AnimalType.TURTLE:
+      if (feeRate < TURTLE_SIZE_TIERS.SMALL_MAX) {
+        return AnimalSize.SMALL;
+      } else if (feeRate < TURTLE_SIZE_TIERS.MEDIUM_MAX) {
+        return AnimalSize.MEDIUM;
+      } else {
+        return AnimalSize.LARGE;
+      }
+    case AnimalType.PIG:
+      if (feeRate < PIG_SIZE_TIERS.SMALL_MAX) {
+        return AnimalSize.SMALL;
+      } else if (feeRate < PIG_SIZE_TIERS.MEDIUM_MAX) {
+        return AnimalSize.MEDIUM;
+      } else {
+        return AnimalSize.LARGE;
+      }
+    case AnimalType.RABBIT:
+      if (feeRate < RABBIT_SIZE_TIERS.SMALL_MAX) {
+        return AnimalSize.SMALL;
+      } else if (feeRate < RABBIT_SIZE_TIERS.MEDIUM_MAX) {
+        return AnimalSize.MEDIUM;
+      } else {
+        return AnimalSize.LARGE;
+      }
   }
 }
 

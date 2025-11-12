@@ -1,6 +1,11 @@
 import { Controller, Get, HttpException, HttpStatus } from '@nestjs/common';
 import { SnapshotService } from './snapshot.service';
-import { SnapshotResponse, SnapshotResponseSchema } from './snapshot.schemas';
+import {
+  SnapshotResponse,
+  SnapshotResponseSchema,
+  TxPoolInfoResponse,
+  TxPoolInfoResponseSchema,
+} from './snapshot.schemas';
 
 @Controller('api/v1')
 export class SnapshotController {
@@ -78,6 +83,28 @@ export class SnapshotController {
       };
 
       return SnapshotResponseSchema.parse(response);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('tx-pool-info')
+  async getTxPoolInfo(): Promise<TxPoolInfoResponse> {
+    try {
+      const txPoolInfo = await this.snapshotService.getTxPoolInfo();
+
+      const response = {
+        data: txPoolInfo,
+        timestamp: new Date().toISOString(),
+      };
+
+      return TxPoolInfoResponseSchema.parse(response);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;

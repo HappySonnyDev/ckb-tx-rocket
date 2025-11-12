@@ -5,9 +5,10 @@
 
 import { Scene } from "phaser";
 import { networkConfig } from "../../../config/network.config";
+import { chainVizService } from "../../../services/CKBChainVizService";
 
 export class BuildingRenderer {
-    private scene: Scene;
+    private scene: any; // Game scene with getMainGameAreaBounds()
 
     private museum!: Phaser.GameObjects.Image;
     private cafe!: Phaser.GameObjects.Image;
@@ -23,7 +24,7 @@ export class BuildingRenderer {
     ) => void;
 
     constructor(
-        scene: Scene,
+        scene: any,
         onTooltipShow?: (
             content: any,
             x: number,
@@ -37,12 +38,20 @@ export class BuildingRenderer {
     }
 
     /**
+     * Get the offset for the main game area
+     */
+    private getOffset(): number {
+        return this.scene.getMainGameAreaBounds().left;
+    }
+
+    /**
      * Renders all buildings and sets up interactions
      */
     public renderBuildings(): void {
         const roadRightEdge = 798;
         const roadBottomEdge = 340;
         const padding = 32;
+        const offset = this.getOffset();
 
         if (this.museum) this.museum.destroy();
         if (this.cafe) this.cafe.destroy();
@@ -51,7 +60,7 @@ export class BuildingRenderer {
 
         // Museum
         this.museum = this.scene.add.image(
-            roadRightEdge,
+            offset + roadRightEdge,
             roadBottomEdge,
             "meseum",
         );
@@ -62,7 +71,7 @@ export class BuildingRenderer {
 
         // Cafe
         this.cafe = this.scene.add.image(
-            roadRightEdge + 228 + padding,
+            offset + roadRightEdge + 228 + padding,
             roadBottomEdge,
             "cafe",
         );
@@ -73,7 +82,7 @@ export class BuildingRenderer {
 
         // Cake
         this.cake = this.scene.add.image(
-            roadRightEdge + 228 + padding + 160 + padding,
+            offset + roadRightEdge + 228 + padding + 160 + padding,
             roadBottomEdge,
             "cake",
         );
@@ -84,7 +93,7 @@ export class BuildingRenderer {
 
         // King Next
         const kingNextKey = networkConfig.getResourceName('king_next');
-        this.kingNext = this.scene.add.image(1102, 627, kingNextKey);
+        this.kingNext = this.scene.add.image(offset + 1102, 627, kingNextKey);
         this.kingNext.setDisplaySize(236, 133);
         this.kingNext.setOrigin(0, 1);
         this.kingNext.setDepth(100);
@@ -96,6 +105,8 @@ export class BuildingRenderer {
      * Handle museum click
      */
     private handleMuseumClick(): void {
+        console.log("🏛️ Museum clicked!");
+        const offset = this.getOffset();
         if (this.onTooltipShow) {
             this.onTooltipShow(
                 {
@@ -103,11 +114,13 @@ export class BuildingRenderer {
                     highlightText: "Nov 16, 2019",
                     highlightColor: "#F2EC8A",
                 },
-                798,
+                offset + 798,
                 50,
                 240,
                 74,
             );
+        } else {
+            console.log("⚠️ onTooltipShow callback is not set!");
         }
     }
 
@@ -115,6 +128,8 @@ export class BuildingRenderer {
      * Handle cafe click
      */
     private handleCafeClick(): void {
+        console.log("☕ Cafe clicked!");
+        const offset = this.getOffset();
         if (this.onTooltipShow) {
             this.onTooltipShow(
                 {
@@ -131,11 +146,13 @@ export class BuildingRenderer {
                     highlightText: ["Mirana", "Pudge", "Meepo"],
                     highlightColor: "#F2EC8A",
                 },
-                1040,
+                offset + 1040,
                 63,
                 193,
                 198,
             );
+        } else {
+            console.log("⚠️ onTooltipShow callback is not set!");
         }
     }
 
@@ -143,6 +160,8 @@ export class BuildingRenderer {
      * Handle cake click
      */
     private handleCakeClick(): void {
+        console.log("🍰 Cake clicked!");
+        const offset = this.getOffset();
         if (this.onTooltipShow) {
             this.onTooltipShow(
                 {
@@ -154,33 +173,94 @@ export class BuildingRenderer {
                     highlightText: ["Nov 19, 2023", "Nov 2027"],
                     highlightColor: "#F2EC8A",
                 },
-                1026 + 32 + 160 + 32,
+                offset + 1026 + 32 + 160 + 32,
                 100,
+                193,
+                168,
             );
+        } else {
+            console.log("⚠️ onTooltipShow callback is not set!");
         }
     }
 
     /**
      * Handle king next click
      */
-    private handleKingNextClick(): void {
+    private async handleKingNextClick(): Promise<void> {
+        console.log("🐙 King Next clicked!");
+        
+        const offset = this.getOffset();
+        
+        // 先展示loading状态的tooltip
         if (this.onTooltipShow) {
             this.onTooltipShow(
                 {
                     text: `🐙 Furry? Fluffy? Fabulous? I don't care.  If your fee's not fire, you're not getting picked up — at least not first.
                     
-                    Avg. Fee Rate 1.3 shannons/KB
-                    Fee Range 0.8–2.5 shannons/KB
+                    Loading...
                     
                     (You know what to do)`,
-                    highlightText: ["1.3 shannons/KB", "0.8–2.5 shannons/KB"],
+                    highlightText: "Loading...",
+                    highlightColor: "#FFD700",
                 },
-
-                1002,
+                offset + 889,
                 500,
                 300,
                 148,
             );
+        } else {
+            console.log("⚠️ onTooltipShow callback is not set!");
+            return;
+        }
+        
+        try {
+            // 调用 tx_pool_info RPC 方法获取数据
+            const txPoolInfo = await chainVizService.getTxPoolInfo();
+            console.log("📊 TX Pool Info:", txPoolInfo);
+            
+            // 将十六进制 min_fee_rate 转换为十进制 (shannons/KB)
+            const minFeeRateDecimal = parseInt(txPoolInfo.min_fee_rate, 16);
+            const minFeeRateText = `Min Fee Rate ${minFeeRateDecimal} shannons/KB`;
+            const highlightPart = `${minFeeRateDecimal} shannons/KB`;
+            
+            // 用实际数据更新tooltip
+            if (this.onTooltipShow) {
+                this.onTooltipShow(
+                    {
+                        text: `🐙 Furry? Fluffy? Fabulous? I don't care.  If your fee's not fire, you're not getting picked up — at least not first.
+                    
+                    ${minFeeRateText}
+                    
+                    (You know what to do)`,
+                        highlightText: highlightPart,
+                    },
+                    offset + 889,
+                    500,
+                    300,
+                    148,
+                );
+            }
+        } catch (error) {
+            console.error("❌ Failed to fetch tx pool info:", error);
+            
+            // 如果接口失败，显示错误提示
+            if (this.onTooltipShow) {
+                this.onTooltipShow(
+                    {
+                        text: `🐙 Furry? Fluffy? Fabulous? I don't care.  If your fee's not fire, you're not getting picked up — at least not first.
+                    
+                    Failed to load fee rate info
+                    
+                    (Please try again)`,
+                        highlightText: "Failed to load fee rate info",
+                        highlightColor: "#FF6B6B",
+                    },
+                    offset + 889,
+                    500,
+                    300,
+                    148,
+                );
+            }
         }
     }
 

@@ -142,12 +142,158 @@ async function analyzeFeeRates() {
     );
     console.log();
 
+    // 计算每个动物类型内部的细分档位（每个动物分3档）
+    console.log('=== 动物类型细分档位（每个动物分大中小3档）===');
+
+    // 乌龟内部细分
+    const turtleTxs = sortedFeeRates.filter((tx) => tx.feeRate < p33);
+    if (turtleTxs.length > 0) {
+      const turtleP33 =
+        turtleTxs[Math.floor(turtleTxs.length * 0.33)]?.feeRate ||
+        turtleTxs[0].feeRate;
+      const turtleP66 =
+        turtleTxs[Math.floor(turtleTxs.length * 0.66)]?.feeRate ||
+        turtleTxs[turtleTxs.length - 1].feeRate;
+      console.log(`🐢 乌龟细分:`);
+      console.log(`   小乌龟 (32x32): < ${turtleP33.toFixed(4)} shannon/byte`);
+      console.log(
+        `   中乌龟 (44x44): ${turtleP33.toFixed(4)} ~ ${turtleP66.toFixed(4)} shannon/byte`,
+      );
+      console.log(
+        `   大乌龟 (56x56): ${turtleP66.toFixed(4)} ~ ${p33.toFixed(4)} shannon/byte`,
+      );
+
+      const turtleSmall = turtleTxs.filter(
+        (tx) => tx.feeRate < turtleP33,
+      ).length;
+      const turtleMedium = turtleTxs.filter(
+        (tx) => tx.feeRate >= turtleP33 && tx.feeRate < turtleP66,
+      ).length;
+      const turtleLarge = turtleTxs.filter(
+        (tx) => tx.feeRate >= turtleP66,
+      ).length;
+      console.log(
+        `   分布: 小${turtleSmall} (${((turtleSmall / turtleTxs.length) * 100).toFixed(1)}%), 中${turtleMedium} (${((turtleMedium / turtleTxs.length) * 100).toFixed(1)}%), 大${turtleLarge} (${((turtleLarge / turtleTxs.length) * 100).toFixed(1)}%)`,
+      );
+    }
+    console.log();
+
+    // 猪内部细分
+    const pigTxs = sortedFeeRates.filter(
+      (tx) => tx.feeRate >= p33 && tx.feeRate < p66,
+    );
+    if (pigTxs.length > 0) {
+      const pigP33 =
+        pigTxs[Math.floor(pigTxs.length * 0.33)]?.feeRate || pigTxs[0].feeRate;
+      const pigP66 =
+        pigTxs[Math.floor(pigTxs.length * 0.66)]?.feeRate ||
+        pigTxs[pigTxs.length - 1].feeRate;
+      console.log(`🐷 猪细分:`);
+      console.log(
+        `   小猪 (32x32): ${p33.toFixed(4)} ~ ${pigP33.toFixed(4)} shannon/byte`,
+      );
+      console.log(
+        `   中猪 (44x44): ${pigP33.toFixed(4)} ~ ${pigP66.toFixed(4)} shannon/byte`,
+      );
+      console.log(
+        `   大猪 (56x56): ${pigP66.toFixed(4)} ~ ${p66.toFixed(4)} shannon/byte`,
+      );
+
+      const pigSmall = pigTxs.filter((tx) => tx.feeRate < pigP33).length;
+      const pigMedium = pigTxs.filter(
+        (tx) => tx.feeRate >= pigP33 && tx.feeRate < pigP66,
+      ).length;
+      const pigLarge = pigTxs.filter((tx) => tx.feeRate >= pigP66).length;
+      console.log(
+        `   分布: 小${pigSmall} (${((pigSmall / pigTxs.length) * 100).toFixed(1)}%), 中${pigMedium} (${((pigMedium / pigTxs.length) * 100).toFixed(1)}%), 大${pigLarge} (${((pigLarge / pigTxs.length) * 100).toFixed(1)}%)`,
+      );
+    }
+    console.log();
+
+    // 兔子内部细分
+    const rabbitTxs = sortedFeeRates.filter((tx) => tx.feeRate >= p66);
+    if (rabbitTxs.length > 0) {
+      const rabbitP33 =
+        rabbitTxs[Math.floor(rabbitTxs.length * 0.33)]?.feeRate ||
+        rabbitTxs[0].feeRate;
+      const rabbitP66 =
+        rabbitTxs[Math.floor(rabbitTxs.length * 0.66)]?.feeRate ||
+        rabbitTxs[rabbitTxs.length - 1].feeRate;
+      console.log(`🐰 兔子细分:`);
+      console.log(
+        `   小兔子 (32x32): ${p66.toFixed(4)} ~ ${rabbitP33.toFixed(4)} shannon/byte`,
+      );
+      console.log(
+        `   中兔子 (44x44): ${rabbitP33.toFixed(4)} ~ ${rabbitP66.toFixed(4)} shannon/byte`,
+      );
+      console.log(`   大兔子 (56x56): >= ${rabbitP66.toFixed(4)} shannon/byte`);
+
+      const rabbitSmall = rabbitTxs.filter(
+        (tx) => tx.feeRate < rabbitP33,
+      ).length;
+      const rabbitMedium = rabbitTxs.filter(
+        (tx) => tx.feeRate >= rabbitP33 && tx.feeRate < rabbitP66,
+      ).length;
+      const rabbitLarge = rabbitTxs.filter(
+        (tx) => tx.feeRate >= rabbitP66,
+      ).length;
+      console.log(
+        `   分布: 小${rabbitSmall} (${((rabbitSmall / rabbitTxs.length) * 100).toFixed(1)}%), 中${rabbitMedium} (${((rabbitMedium / rabbitTxs.length) * 100).toFixed(1)}%), 大${rabbitLarge} (${((rabbitLarge / rabbitTxs.length) * 100).toFixed(1)}%)`,
+      );
+    }
+    console.log();
+
     // 生成建议的代码配置
     console.log('=== 建议的代码配置 ===');
     console.log('export const FEE_RATE_TIERS = {');
     console.log(`  TURTLE_MAX: ${p33.toFixed(4)},  // 乌龟最大值`);
     console.log(`  PIG_MAX: ${p66.toFixed(4)},     // 猪最大值`);
     console.log('} as const;');
+    console.log();
+
+    // 生成大小细分配置
+    if (turtleTxs.length > 0) {
+      const turtleP33 =
+        turtleTxs[Math.floor(turtleTxs.length * 0.33)]?.feeRate ||
+        turtleTxs[0].feeRate;
+      const turtleP66 =
+        turtleTxs[Math.floor(turtleTxs.length * 0.66)]?.feeRate ||
+        turtleTxs[turtleTxs.length - 1].feeRate;
+      console.log('export const TURTLE_SIZE_TIERS = {');
+      console.log(`  SMALL_MAX: ${turtleP33.toFixed(4)},   // 32x32`);
+      console.log(`  MEDIUM_MAX: ${turtleP66.toFixed(4)},  // 44x44`);
+      console.log(`  // >= MEDIUM_MAX: 56x56`);
+      console.log('} as const;');
+      console.log();
+    }
+
+    if (pigTxs.length > 0) {
+      const pigP33 =
+        pigTxs[Math.floor(pigTxs.length * 0.33)]?.feeRate || pigTxs[0].feeRate;
+      const pigP66 =
+        pigTxs[Math.floor(pigTxs.length * 0.66)]?.feeRate ||
+        pigTxs[pigTxs.length - 1].feeRate;
+      console.log('export const PIG_SIZE_TIERS = {');
+      console.log(`  SMALL_MAX: ${pigP33.toFixed(4)},   // 32x32`);
+      console.log(`  MEDIUM_MAX: ${pigP66.toFixed(4)},  // 44x44`);
+      console.log(`  // >= MEDIUM_MAX: 56x56`);
+      console.log('} as const;');
+      console.log();
+    }
+
+    if (rabbitTxs.length > 0) {
+      const rabbitP33 =
+        rabbitTxs[Math.floor(rabbitTxs.length * 0.33)]?.feeRate ||
+        rabbitTxs[0].feeRate;
+      const rabbitP66 =
+        rabbitTxs[Math.floor(rabbitTxs.length * 0.66)]?.feeRate ||
+        rabbitTxs[rabbitTxs.length - 1].feeRate;
+      console.log('export const RABBIT_SIZE_TIERS = {');
+      console.log(`  SMALL_MAX: ${rabbitP33.toFixed(4)},   // 32x32`);
+      console.log(`  MEDIUM_MAX: ${rabbitP66.toFixed(4)},  // 44x44`);
+      console.log(`  // >= MEDIUM_MAX: 56x56`);
+      console.log('} as const;');
+    }
   } catch (error) {
     console.error('分析失败:', error);
   } finally {
