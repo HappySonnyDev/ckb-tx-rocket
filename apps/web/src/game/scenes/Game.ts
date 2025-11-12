@@ -22,6 +22,7 @@ import { BlockDetailManager } from "./ui/BlockDetailManager";
 // Queue Managers
 import { PendingQueueManager } from "./queues/PendingQueueManager";
 import { ProposedQueueManager } from "./queues/ProposedQueueManager";
+import { BoardingQueueManager } from "./queues/BoardingQueueManager";
 
 // Animators
 import { AnimalAnimator } from "./animations/AnimalAnimator";
@@ -49,6 +50,7 @@ export class Game extends Scene {
     // Queue Managers
     private pendingQueueManager!: PendingQueueManager;
     private proposedQueueManager!: ProposedQueueManager;
+    private boardingQueueManager!: BoardingQueueManager;
     
     // Animators
     private animalAnimator!: AnimalAnimator;
@@ -187,6 +189,7 @@ export class Game extends Scene {
         // Initialize queue managers
         this.pendingQueueManager = new PendingQueueManager(this);
         this.proposedQueueManager = new ProposedQueueManager(this);
+        this.boardingQueueManager = new BoardingQueueManager(this);
 
         // Initialize animators
         this.animalAnimator = new AnimalAnimator(
@@ -542,7 +545,7 @@ export class Game extends Scene {
 
     /**
      * Handles block finalized event
-     * Removes transactions from proposed queue that are included in the finalized block
+     * Moves transactions from proposed queue to boarding queue, then launches rocket
      */
     public handleBlockFinalized(block: any): void {
         console.log(`🔄 Processing block finalized: #${block.blockNumber}`);
@@ -550,41 +553,44 @@ export class Game extends Scene {
         // Check if block has transactions array
         if (!block.transactions || !Array.isArray(block.transactions)) {
             console.log('⚠️ No transactions in block payload');
+            // Still launch rocket even if no transactions
+            this.launchRocket();
             return;
         }
         
         console.log(`   Block contains ${block.transactions.length} transactions`);
         
-        // Remove each transaction from proposed queue
-        let removedCount = 0;
+        // Collect animals to board (limit to MAX_PROPOSED_CAPACITY for screen visibility)
+        const animalsToBoard: AnimalQueueItem[] = [];
         block.transactions.forEach((tx: { txHash: string }) => {
+            // Only process up to MAX_PROPOSED_CAPACITY animals (screen limit)
+            if (animalsToBoard.length >= GAME_CONSTANTS.MAX_PROPOSED_CAPACITY) {
+                return;
+            }
+            
             const idx = this.proposedQueueManager.findIndexByTxHash(tx.txHash);
             if (idx !== -1) {
                 const animal = this.proposedQueueManager.removeByIndex(idx);
                 if (animal && animal.sprite) {
-                    // Fade out animation
-                    this.tweens.add({
-                        targets: animal.sprite,
-                        alpha: 0,
-                        duration: 500,
-                        ease: 'Power2',
-                        onComplete: () => {
-                            animal.sprite.destroy();
-                        },
-                    });
-                    removedCount++;
-                    console.log(`   ✅ Removed transaction from proposed queue: ${tx.txHash}`);
+                    animalsToBoard.push(animal);
+                    console.log(`   ✅ Queued transaction for boarding: ${tx.txHash}`);
                 }
             }
         });
         
-        // Rearrange queue after removals
-        if (removedCount > 0) {
+        // Rearrange proposed queue after removals
+        if (animalsToBoard.length > 0) {
             this.proposedQueueManager.arrangeQueue();
-            console.log(`📊 Removed ${removedCount} transactions from proposed queue`);
+            console.log(`📊 ${animalsToBoard.length} animals will board the rocket`);
         } else {
             console.log('ℹ️ No matching transactions found in proposed queue');
         }
+        
+        // Start boarding animation, then launch rocket when complete
+        this.boardingQueueManager.boardAnimals(animalsToBoard, () => {
+            console.log('🚀 All animals boarded, launching rocket...');
+            this.launchRocket();
+        });
     }
 
     /**
@@ -791,6 +797,12 @@ export class Game extends Scene {
             console.log('   ✅ Proposed queue cleared');
         }
         
+        // Clear boarding queue
+        if (this.boardingQueueManager) {
+            this.boardingQueueManager.clear();
+            console.log('   ✅ Boarding queue cleared');
+        }
+        
         // Clear confirmed queue
         this.confirmQueue = [];
         console.log('   ✅ Confirmed queue cleared');
@@ -826,6 +838,7 @@ export class Game extends Scene {
         if (this.blockDetailManager) this.blockDetailManager.destroy();
         if (this.pendingQueueManager) this.pendingQueueManager.destroy();
         if (this.proposedQueueManager) this.proposedQueueManager.destroy();
+        if (this.boardingQueueManager) this.boardingQueueManager.destroy();
         if (this.backgroundRenderer) this.backgroundRenderer.destroy();
         if (this.roadRenderer) this.roadRenderer.destroy();
         if (this.buildingRenderer) this.buildingRenderer.destroy();

@@ -60,7 +60,7 @@ export class RocketAnimator {
         this.pow.setVisible(false);
         
         // Step 2: After door closes, show fire and start liftoff
-        this.scene.time.delayedCall(1000, () => {
+        this.scene.time.delayedCall(800, () => {
             // Show and animate fire
             this.fire.setVisible(true);
             
@@ -68,7 +68,7 @@ export class RocketAnimator {
             this.scene.tweens.add({
                 targets: this.fire,
                 alpha: 1,
-                duration: 300,
+                duration: 200,
                 ease: "Power2",
             });
             
@@ -83,9 +83,9 @@ export class RocketAnimator {
                 ease: "Sine.easeInOut",
             });
             
-            // Step 3: Rocket slowly lifts off
-            this.scene.time.delayedCall(500, () => {
-                const liftoffDuration = 3000;
+            // Step 3: Rocket lifts off faster
+            this.scene.time.delayedCall(300, () => {
+                const liftoffDuration = 2000; // Reduced from 3000ms to 2000ms
                 const rocketStartY = 264 + 279 - 75 - 89;
                 const targetY = -500;
                 
@@ -105,8 +105,8 @@ export class RocketAnimator {
                         this.fire.setVisible(false);
                         this.fire.setAlpha(0);
                         
-                        // Reset rocket, platform and pow
-                        this.scene.time.delayedCall(2000, () => {
+                        // Reset rocket, platform and pow (faster reset)
+                        this.scene.time.delayedCall(500, () => {
                             this.resetRocket();
                         });
                     },

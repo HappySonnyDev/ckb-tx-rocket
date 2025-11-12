@@ -125,9 +125,10 @@ export class SyncService implements OnModuleInit {
         async (txEntry: string) => {
           try {
             const parsedTx = JSON.parse(txEntry) as NewTransactionEntry;
+            this.logger.log('parsedTx+===========');
             const txType =
               await this.transactionService.processPendingTx(parsedTx);
-
+            this.logger.log(txType, 'txType')
             const pendingPayload: TransactionPendingPayload = {
               txHash: parsedTx.transaction.hash,
               timestamp: new Date().toISOString(),

@@ -74,10 +74,10 @@ export const GAME_CONSTANTS = {
 } as const;
 
 /**
- * Animal speed configuration
+ * Animal speed configuration (pixels per second)
  */
 export const ANIMAL_SPEEDS: Record<AnimalType, number> = {
-    rabbit: 400,
-    pig: 300,
-    turtle: 200,
+    rabbit: 600,  // Increased from 400
+    pig: 450,     // Increased from 300
+    turtle: 300,  // Increased from 200
 };

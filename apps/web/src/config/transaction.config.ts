@@ -9,6 +9,9 @@ export const TX_TYPE_COLORS: Record<string, string> = {
     secp256k1_blake160_multisig_all: "#BFE0EA",
     sudt: "#7A5699",
     xudt: "#8A5C32",
+    udt:"#dac9e9",
+    omnilock:"#bde2cd"
+
 } as const;
 
 export type TransactionType = keyof typeof TX_TYPE_COLORS;

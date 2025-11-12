@@ -21,19 +21,20 @@ export class TransactionService {
     // 加载 system-scripts.json
     const systemScriptsPath = join(process.cwd(), 'system-scripts.json');
     this.systemScripts = JSON.parse(readFileSync(systemScriptsPath, 'utf-8'));
-    this.networkType =
-      this.configService.get<string>('CKB_NETWORK_TYPE') || 'testnet';
+    // 使用 NETWORK 环境变量，与其他服务保持一致
+    this.networkType = process.env.NETWORK || 'testnet';
   }
 
   /**
-   * 根据交易的第一个 cell_dep 的 txHash 识别交易类型
+   * 根据交易的 cell_deps 的 txHash 识别交易类型
+   * 遍历所有 cell_deps 直到找到匹配的类型
    */
   private identifyTransactionType(tx: Transaction): string | null {
+    this.logger.log('Identifying transaction type');
     if (!tx.cell_deps || tx.cell_deps.length === 0) {
       return null;
     }
 
-    const firstCellDepTxHash = tx.cell_deps[0].out_point.tx_hash;
     const networkScripts = this.systemScripts[this.networkType];
 
     if (!networkScripts) {
@@ -43,20 +44,28 @@ export class TransactionService {
       return null;
     }
 
-    // 遍历所有脚本类型，查找匹配的 txHash
-    for (const [scriptType, scriptConfig] of Object.entries(networkScripts)) {
-      const config = scriptConfig as any;
-      if (config.script && config.script.cellDeps) {
-        for (const cellDepWrapper of config.script.cellDeps) {
-          if (cellDepWrapper.cellDep && cellDepWrapper.cellDep.outPoint) {
-            if (cellDepWrapper.cellDep.outPoint.txHash === firstCellDepTxHash) {
-              return scriptType;
+    // 遍历交易的所有 cell_deps
+    for (const cellDep of tx.cell_deps) {
+      const cellDepTxHash = cellDep.out_point.tx_hash;
+      this.logger.log(`Checking cell_dep txHash: ${cellDepTxHash}`);
+
+      // 遍历所有脚本类型，查找匹配的 txHash
+      for (const [scriptType, scriptConfig] of Object.entries(networkScripts)) {
+        const config = scriptConfig as any;
+        if (config.script && config.script.cellDeps) {
+          for (const cellDepWrapper of config.script.cellDeps) {
+            if (cellDepWrapper.cellDep && cellDepWrapper.cellDep.outPoint) {
+              if (cellDepWrapper.cellDep.outPoint.txHash === cellDepTxHash) {
+                this.logger.log(`Transaction type identified: ${scriptType}`);
+                return scriptType;
+              }
             }
           }
         }
       }
     }
 
+    this.logger.log('No matching transaction type found');
     return null;
   }
 
@@ -126,8 +135,9 @@ export class TransactionService {
     txEntry: NewTransactionEntry,
     prismaClient?: TransactionClient,
   ) {
+    this.logger.log(`Processing pending tx `, txEntry);
+
     const tx = txEntry.transaction;
-    this.logger.debug(`Processing pending tx ${tx.hash}`);
 
     // 识别交易类型
     const txType = this.identifyTransactionType(tx);

@@ -167,7 +167,7 @@ function App() {
         setIsInitialized(true);
       }
     }
-  }, [chainViz.isConnected, chainViz.latestBlock]);
+  }, [chainViz.isConnected]);
 
   // 订阅 WebSocket 事务事件：更新计数+触发动画（若方法存在）
   useEffect(() => {
@@ -220,11 +220,6 @@ function App() {
       // 更新 Game 场景的当前区块数据
       if (typeof gameScene.updateCurrentBlock === 'function') {
         gameScene.updateCurrentBlock(block);
-      }
-      
-      // 触发火箭发射动画
-      if (typeof gameScene.launchRocket === 'function') {
-        gameScene.launchRocket();
       }
     };
 
