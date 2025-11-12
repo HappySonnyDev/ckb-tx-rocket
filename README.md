@@ -174,7 +174,7 @@ API_TESTNET_PORT=3000                          # 测试网 API 端口
 
 ```bash
 # 生成 Prisma Client
-pnpm --filter @ckb-tx-rocket/server prisma generate
+pnpm --filter @ckb-tx-rocket/server prisma:generate
 
 # 初始化 Testnet 数据库
 pnpm --filter @ckb-tx-rocket/server db:init:testnet
