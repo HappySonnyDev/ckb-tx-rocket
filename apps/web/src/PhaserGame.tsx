@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useLayoutEffect, useRef } from 'react';
+import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import StartGame from './game/main';
 import { EventBus } from './game/EventBus';
 
@@ -18,6 +18,7 @@ interface IProps {
  */
 export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(function PhaserGame({ currentActiveScene }, ref) {
     const game = useRef<Phaser.Game | null>(null!);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     useLayoutEffect(() => {
         if (game.current === null) {
@@ -59,6 +60,9 @@ export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(function PhaserGame
     }, [currentActiveScene, ref]);
 
     return (
-        <div id="game-container"></div>
+        <div 
+            ref={containerRef}
+            id="game-container"
+        ></div>
     );
 });

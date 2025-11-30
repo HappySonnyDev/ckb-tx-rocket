@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { EventBus } from '../game/EventBus';
 import { chainVizConfig } from '../config/chainviz.config';
+import { networkConfig } from '../config/network.config';
 
 export interface Block {
     blockNumber: string;
@@ -317,5 +318,8 @@ export class CKBChainVizService {
 
 /**
  * Default CKB ChainViz service instance
+ * Initializes with the current network mode from networkConfig
  */
-export const chainVizService = new CKBChainVizService();
+export const chainVizService = new CKBChainVizService(
+    networkConfig.getEndpoints().apiUrl
+);

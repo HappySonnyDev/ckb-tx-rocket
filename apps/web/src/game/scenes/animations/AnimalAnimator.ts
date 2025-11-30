@@ -42,6 +42,53 @@ export class AnimalAnimator {
     }
     
     /**
+     * Adds walking motion effect to a sprite
+     * @param sprite - The sprite to animate
+     * @returns Tween object that can be stopped later
+     */
+    private addWalkingMotion(sprite: Phaser.GameObjects.Image): Phaser.Tweens.Tween[] {
+        // Gentle rocking motion (like walking)
+        const rockTween = this.scene.tweens.add({
+            targets: sprite,
+            angle: { from: -3, to: 3 },
+            duration: 180,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+        });
+        
+        // Breathing/bouncing effect (vertical scale)
+        const bounceTween = this.scene.tweens.add({
+            targets: sprite,
+            scaleY: { from: 0.97, to: 1.03 },
+            duration: 160,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+        });
+        
+        return [rockTween, bounceTween];
+    }
+    
+    /**
+     * Stops walking motion effect and resets sprite to normal state
+     * @param sprite - The sprite to reset
+     * @param tweens - Array of tweens to stop
+     */
+    private stopWalkingMotion(sprite: Phaser.GameObjects.Image, tweens: Phaser.Tweens.Tween[]): void {
+        tweens.forEach(tween => tween.stop());
+        
+        // Reset to normal state
+        this.scene.tweens.add({
+            targets: sprite,
+            angle: 0,
+            scaleY: 1,
+            duration: 100,
+            ease: 'Power2',
+        });
+    }
+    
+    /**
      * Spawns a single animal and animates it to pending queue position
      */
     public spawnAnimalToPending(type: AnimalType, animalSize: number, txHash?: string, txType?: string | null, fee?: string, size?: string, timestamp?: string, status?: 'PENDING' | 'PROPOSED' | 'CONFIRMED' | 'REJECTED'): void {
@@ -106,6 +153,9 @@ export class AnimalAnimator {
         const distance = queuePosition.x - GAME_CONSTANTS.MEMPOOL_START_X;
         const duration = (distance / speed) * 1000;
         
+        // Add walking motion effect
+        const walkingTweens = this.addWalkingMotion(animal);
+        
         // Animate movement to queue position
         this.scene.tweens.add({
             targets: animal,
@@ -114,6 +164,8 @@ export class AnimalAnimator {
             duration: duration,
             ease: "Linear",
             onComplete: () => {
+                // Stop walking motion
+                this.stopWalkingMotion(animal, walkingTweens);
                 this.pendingInFlight = Math.max(0, this.pendingInFlight - 1);
                 console.log(
                     `➡️ Arrived at pending spot: txHash=${txHash ?? "N/A"}, queueLen=${this.pendingQueue.getLength()}`,
@@ -136,7 +188,12 @@ export class AnimalAnimator {
                 }
                 
                 // Switch to queue sprite
-                animal.setTexture(`${type}_b`);
+                const queueTexture = `${type}_b`;
+                if (this.scene.textures.exists(queueTexture)) {
+                    animal.setTexture(queueTexture);
+                } else {
+                    console.warn(`⚠️ Animal texture not found: ${queueTexture}`);
+                }
                 
                 console.log(`➕ Adding to pending: txHash=${txHash ?? "N/A"}, type=${type}`);
                 // Add to queue
@@ -215,6 +272,9 @@ export class AnimalAnimator {
         selectedAnimal.sprite.removeAllListeners('pointerdown');
         selectedAnimal.sprite.on('pointerdown', tempClickHandler);
         
+        // Add walking motion for upward movement
+        const walkingTweens1 = this.addWalkingMotion(selectedAnimal.sprite);
+        
         // Step 1: Move upward
         this.scene.tweens.add({
             targets: selectedAnimal.sprite,
@@ -222,12 +282,23 @@ export class AnimalAnimator {
             duration: upDuration,
             ease: "Linear",
             onComplete: () => {
+                // Stop first walking motion
+                this.stopWalkingMotion(selectedAnimal.sprite, walkingTweens1);
+                
                 // Step 2: Move left and change sprite
-                selectedAnimal.sprite.setTexture(selectedAnimal.type);
+                const runningTexture = selectedAnimal.type;
+                if (this.scene.textures.exists(runningTexture)) {
+                    selectedAnimal.sprite.setTexture(runningTexture);
+                } else {
+                    console.warn(`⚠️ Animal texture not found: ${runningTexture}`);
+                }
                 selectedAnimal.sprite.setFlipX(false);
                 
                 const leftDistance = selectedAnimal.sprite.x - proposedPosition.x;
                 const leftDuration = (leftDistance / speed) * 1000;
+                
+                // Add walking motion for leftward movement
+                const walkingTweens2 = this.addWalkingMotion(selectedAnimal.sprite);
                 
                 this.scene.tweens.add({
                     targets: selectedAnimal.sprite,
@@ -236,6 +307,8 @@ export class AnimalAnimator {
                     duration: leftDuration,
                     ease: "Linear",
                     onComplete: () => {
+                        // Stop second walking motion
+                        this.stopWalkingMotion(selectedAnimal.sprite, walkingTweens2);
                         if (this.proposedQueue.getLength() >= GAME_CONSTANTS.MAX_PROPOSED_CAPACITY) {
                             console.log(
                                 `⚠️ Proposed capacity full (${GAME_CONSTANTS.MAX_PROPOSED_CAPACITY}). Fading out txHash=${selectedAnimal.txHash ?? "N/A"}`,
@@ -348,13 +421,24 @@ export class AnimalAnimator {
             duration: 150,
             ease: "Power2",
             onComplete: () => {
+                // Add walking motion for upward movement
+                const walkingTweens1 = this.addWalkingMotion(ghost);
+                
                 this.scene.tweens.add({
                     targets: ghost,
                     y: upwardY,
                     duration: upDuration,
                     ease: "Linear",
                     onComplete: () => {
-                        ghost.setTexture(type);
+                        // Stop first walking motion
+                        this.stopWalkingMotion(ghost, walkingTweens1);
+                        
+                        const runningTexture = type;
+                        if (this.scene.textures.exists(runningTexture)) {
+                            ghost.setTexture(runningTexture);
+                        } else {
+                            console.warn(`⚠️ Animal texture not found: ${runningTexture}`);
+                        }
                         ghost.setFlipX(false);
                         
                         const baseProposed = PositionCalculator.calculateProposedPosition(
@@ -366,6 +450,9 @@ export class AnimalAnimator {
                         const leftDistance = Math.abs(ghost.x - targetX);
                         const leftDuration = (leftDistance / speed) * 1000;
                         
+                        // Add walking motion for leftward movement
+                        const walkingTweens2 = this.addWalkingMotion(ghost);
+                        
                         this.scene.tweens.add({
                             targets: ghost,
                             x: targetX,
@@ -373,6 +460,8 @@ export class AnimalAnimator {
                             duration: leftDuration,
                             ease: "Linear",
                             onComplete: () => {
+                                // Stop second walking motion
+                                this.stopWalkingMotion(ghost, walkingTweens2);
                                 if (this.proposedQueue.getLength() >= GAME_CONSTANTS.MAX_PROPOSED_CAPACITY) {
                                     console.log(
                                         `⚠️ Proposed capacity full. Fallback fade out: txHash=${tx.txHash}`,

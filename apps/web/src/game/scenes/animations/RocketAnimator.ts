@@ -52,12 +52,16 @@ export class RocketAnimator {
         
         // Change platform to open state
         const platformOpenKey = networkConfig.getResourceName('platform_open');
-        this.platform.setTexture(platformOpenKey);
-        this.platform.setDisplaySize(232, 94);
-        this.platform.setOrigin(0, 1);
+        // Check if texture exists before setting
+        if (this.scene.textures.exists(platformOpenKey)) {
+            this.platform.setTexture(platformOpenKey);
+            this.platform.setDisplaySize(232, 94);
+            this.platform.setOrigin(0, 1);
+        } else {
+            console.warn(`⚠️ Texture not found: ${platformOpenKey}`);
+        }
         
-        // Hide pow
-        this.pow.setVisible(false);
+        // Keep pow visible (don't hide it during launch)
         
         // Step 2: After door closes, show fire and start liftoff
         this.scene.time.delayedCall(800, () => {
@@ -106,7 +110,7 @@ export class RocketAnimator {
                         this.fire.setAlpha(0);
                         
                         // Reset rocket, platform and pow (faster reset)
-                        this.scene.time.delayedCall(500, () => {
+                        this.scene.time.delayedCall(200, () => {
                             this.resetRocket();
                         });
                     },
@@ -134,34 +138,65 @@ export class RocketAnimator {
     }
     
     /**
-     * Resets the rocket to its initial state
+     * Resets the rocket to its initial state with rise animation
      */
     private resetRocket(): void {
         const grassBottomEdge = 264 + 279 - 75 - 14;
         const rocketY = 264 + 279 - 75 - 59;
+        const platformY = 264 + 279 - 75 - 14; // Platform bottom position
         
+        // Keep platform in open state during rocket rise
+        const platformOpenKey = networkConfig.getResourceName('platform_open');
+        // Check if texture exists before setting
+        if (this.scene.textures.exists(platformOpenKey)) {
+            this.platform.setTexture(platformOpenKey);
+            this.platform.setDisplaySize(232, 94);
+            this.platform.setOrigin(0, 1);
+        } else {
+            console.warn(`⚠️ Texture not found: ${platformOpenKey}`);
+        }
+        
+        // Hide closed door rocket
         this.rocketCloseDoor.setY(rocketY);
         this.rocketCloseDoor.setVisible(false);
         
-        this.rocket.setY(rocketY);
-        this.rocket.setVisible(true);
-        
+        // Reset fire state
         this.fire.setY(rocketY - 30);
         this.fire.setScale(1);
         this.fire.setAlpha(0);
         this.fire.setVisible(false);
         
-        // Reset platform to closed state
-        const platformKey = networkConfig.getResourceName('platform');
-        this.platform.setTexture(platformKey);
-        this.platform.setDisplaySize(232, 94);
-        this.platform.setOrigin(0, 1);
+        // Position rocket below platform, showing only the top part
+        // The rocket height is 332px, platform is at platformY
+        // Start with rocket mostly hidden below platform
+        const rocketHeight = 332;
+        const rocketStartY = platformY - 20; // Start with only top 20px visible above platform
+        this.rocket.setY(rocketStartY);
+        this.rocket.setVisible(true);
+        this.rocket.setAlpha(1); // Fully visible
         
-        // Show pow again
-        this.pow.setVisible(true);
-        
-        this.isRocketLaunching = false;
-        console.log("火箭已重置");
+        // Animate rocket rising from platform (showing more of the rocket as it rises)
+        this.scene.tweens.add({
+            targets: this.rocket,
+            y: rocketY,
+            duration: 800,
+            ease: "Power2.Out",
+            onComplete: () => {
+                // Close platform after rocket is fully risen
+                const platformKey = networkConfig.getResourceName('platform');
+                // Check if texture exists before setting
+                if (this.scene.textures.exists(platformKey)) {
+                    this.platform.setTexture(platformKey);
+                    this.platform.setDisplaySize(232, 94);
+                    this.platform.setOrigin(0, 1);
+                } else {
+                    console.warn(`⚠️ Texture not found: ${platformKey}`);
+                }
+                
+                this.isRocketLaunching = false;
+                console.log("新火箭已从发射平台升起");
+            },
+        });
     }
     
     /**

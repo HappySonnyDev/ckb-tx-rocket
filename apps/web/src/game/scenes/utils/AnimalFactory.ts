@@ -36,7 +36,7 @@ export class AnimalFactory {
             const feeRate = parseFloat(tx.feeRate);
             if (!isNaN(feeRate)) {
                 const animalType = getAnimalTypeByFeeRate(feeRate);
-                console.log(`🎯 Animal type determined: feeRate=${feeRate} -> ${animalType} (tx=${tx.txHash?.substring(0, 10)})`);
+                // console.log(`🎯 Animal type determined: feeRate=${feeRate} -> ${animalType} (tx=${tx.txHash?.substring(0, 10)})`);
                 return animalType as AnimalType;
             }
         }

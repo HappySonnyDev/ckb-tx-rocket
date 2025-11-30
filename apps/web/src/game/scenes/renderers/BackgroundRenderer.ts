@@ -44,12 +44,13 @@ export class BackgroundRenderer {
     
     /**
      * Renders tiled grass background positioned below the sky
+     * Keeps original height, doesn't extend with game height changes
      */
     public renderGrassBackground(): void {
         const screenWidth = this.scene.scale.width;
         const screenCenterX = screenWidth / 2;
         const GRASS_Y_POSITION = 264;
-        const GRASS_HEIGHT = 279;
+        const GRASS_HEIGHT = 279; // Fixed original height
         
         if (this.grassBackgroundCenter) this.grassBackgroundCenter.destroy();
         if (this.grassBackgroundLeft) this.grassBackgroundLeft.destroy();
@@ -57,9 +58,9 @@ export class BackgroundRenderer {
         
         this.grassBackgroundCenter = this.scene.add.tileSprite(
             screenCenterX,
-            264,
+            GRASS_Y_POSITION,
             screenWidth,
-            283,
+            GRASS_HEIGHT,
             "grass",
         );
         this.grassBackgroundCenter.setOrigin(0.5, 0);

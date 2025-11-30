@@ -29,6 +29,53 @@ export class BoardingQueueManager extends QueueManager {
     }
     
     /**
+     * Adds walking motion effect to a sprite
+     * @param sprite - The sprite to animate
+     * @returns Tween objects that can be stopped later
+     */
+    private addWalkingMotion(sprite: Phaser.GameObjects.Image): Phaser.Tweens.Tween[] {
+        // Gentle rocking motion (like walking)
+        const rockTween = this.scene.tweens.add({
+            targets: sprite,
+            angle: { from: -3, to: 3 },
+            duration: 180,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+        });
+        
+        // Breathing/bouncing effect (vertical scale)
+        const bounceTween = this.scene.tweens.add({
+            targets: sprite,
+            scaleY: { from: 0.97, to: 1.03 },
+            duration: 160,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+        });
+        
+        return [rockTween, bounceTween];
+    }
+    
+    /**
+     * Stops walking motion effect and resets sprite to normal state
+     * @param sprite - The sprite to reset
+     * @param tweens - Array of tweens to stop
+     */
+    private stopWalkingMotion(sprite: Phaser.GameObjects.Image, tweens: Phaser.Tweens.Tween[]): void {
+        tweens.forEach(tween => tween.stop());
+        
+        // Reset to normal state
+        this.scene.tweens.add({
+            targets: sprite,
+            angle: 0,
+            scaleY: 1,
+            duration: 100,
+            ease: 'Power2',
+        });
+    }
+    
+    /**
      * Adds animals to boarding queue and animates them into the rocket
      * @param animals - Array of animals to board the rocket
      * @param onComplete - Callback when all animals have boarded
@@ -61,6 +108,9 @@ export class BoardingQueueManager extends QueueManager {
             const delay = index * 50; // 50ms stagger for visual effect
             
             this.scene.time.delayedCall(delay, () => {
+                // Add walking motion effect
+                const walkingTweens = this.addWalkingMotion(animal.sprite);
+                
                 // Animate animal moving to rocket
                 this.scene.tweens.add({
                     targets: animal.sprite,
@@ -70,6 +120,8 @@ export class BoardingQueueManager extends QueueManager {
                     duration: 500, // 500ms to reach the rocket
                     ease: 'Power2',
                     onComplete: () => {
+                        // Stop walking motion
+                        this.stopWalkingMotion(animal.sprite, walkingTweens);
                         // Fade out as they enter the rocket
                         this.scene.tweens.add({
                             targets: animal.sprite,

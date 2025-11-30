@@ -31,8 +31,47 @@ const NETWORK_ENDPOINTS: Record<NetworkMode, NetworkEndpoints> = {
  * Network mode state manager
  */
 class NetworkConfig {
-  private currentMode: NetworkMode = 'testnet';
+  private static readonly STORAGE_KEY = 'ckb-tx-rocket-network-mode';
+  private currentMode: NetworkMode;
   private listeners: ((mode: NetworkMode) => void)[] = [];
+
+  constructor() {
+    // Load from localStorage or default to testnet
+    this.currentMode = this.loadFromStorage();
+  }
+
+  /**
+   * Load network mode from localStorage
+   */
+  private loadFromStorage(): NetworkMode {
+    if (typeof window === 'undefined') return 'testnet';
+    
+    try {
+      const stored = localStorage.getItem(NetworkConfig.STORAGE_KEY);
+      if (stored === 'mainnet' || stored === 'testnet') {
+        console.log(`🌐 Loaded network mode from storage: ${stored}`);
+        return stored;
+      }
+    } catch (error) {
+      console.warn('Failed to load network mode from localStorage:', error);
+    }
+    
+    return 'testnet';
+  }
+
+  /**
+   * Save network mode to localStorage
+   */
+  private saveToStorage(mode: NetworkMode): void {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      localStorage.setItem(NetworkConfig.STORAGE_KEY, mode);
+      console.log(`💾 Saved network mode to storage: ${mode}`);
+    } catch (error) {
+      console.warn('Failed to save network mode to localStorage:', error);
+    }
+  }
 
   /**
    * Get current network mode
@@ -62,6 +101,7 @@ class NetworkConfig {
     if (this.currentMode !== mode) {
       this.currentMode = mode;
       console.log(`🌐 Network mode changed to: ${mode}`);
+      this.saveToStorage(mode);
       this.updateDOMAttribute();
       this.notifyListeners();
     }

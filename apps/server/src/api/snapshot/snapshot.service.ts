@@ -17,7 +17,7 @@ export class SnapshotService {
     });
   }
   // max = 138
-  async getPendingTransactions(limit: number = 137) {
+  async getPendingTransactions(limit: number = 800) {
     return this.prisma.transaction.findMany({
       where: {
         status: 'PENDING',

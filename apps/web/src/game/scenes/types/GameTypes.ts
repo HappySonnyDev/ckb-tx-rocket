@@ -38,7 +38,7 @@ export interface Position {
  */
 export const GAME_CONSTANTS = {
     // Queue capacity limits
-    MAX_PENDING_CAPACITY: 135,
+    MAX_PENDING_CAPACITY: 800,
     MAX_PROPOSED_CAPACITY: 44,
     MAX_CONCURRENT_PENDING_ARRIVALS: 8,
     MAX_CONCURRENT_PROPOSED_ARRIVALS: 6,
