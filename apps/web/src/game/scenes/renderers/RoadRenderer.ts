@@ -49,13 +49,14 @@ export class RoadRenderer {
         this.roadPath = this.scene.add.image(offset + 357, 370, "lane");
         this.roadPath.setOrigin(0, 0);
         this.roadPath.setDisplaySize(823, 176);
+        this.roadPath.setDepth(10); // 设置道路层级在最底层（小动物depth=50，栏杆depth=100）
     }
     
     /**
      * Renders the mempool entrance
      */
     public renderMempool(): void {
-        const screenHeight = this.scene.scale.height;
+        const screenHeight = window.innerHeight; // 使用视口高度而不是画布高度
         const MEMPOOL_X_POSITION = 0;
         const topHeight = 266 + 266;
         const bottomHeight = screenHeight - topHeight;
@@ -273,7 +274,7 @@ export class RoadRenderer {
      * Gets the Y position of the mempool entrance center
      */
     public getMempoolY(): number {
-        const screenHeight = this.scene.scale.height;
+        const screenHeight = window.innerHeight; // 使用视口高度而不是画布高度
         const topHeight = 266 + 266;
         const bottomHeight = screenHeight - topHeight;
         return topHeight + bottomHeight / 2;

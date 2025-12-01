@@ -76,7 +76,12 @@ export class AnimalAnimator {
      * @param tweens - Array of tweens to stop
      */
     private stopWalkingMotion(sprite: Phaser.GameObjects.Image, tweens: Phaser.Tweens.Tween[]): void {
-        tweens.forEach(tween => tween.stop());
+        // Safely stop each tween
+        tweens.forEach(tween => {
+            if (tween && !tween.isDestroyed()) {
+                tween.stop();
+            }
+        });
         
         // Reset to normal state
         this.scene.tweens.add({
@@ -115,11 +120,12 @@ export class AnimalAnimator {
         // Generate fixed random offset
         const randomOffset = PositionCalculator.generateRandomOffset();
         
-        // Calculate target position in pending queue
-        const tempQueueLength = this.pendingQueue.getLength();
-        const basePosition = PositionCalculator.calculatePendingBasePosition(tempQueueLength, offset);
+        // Calculate initial target position (this may change by the time animal arrives)
+        // based on priority (rabbit=1, pig=2, turtle=3)
+        const initialTargetIndex = this.pendingQueue.findInsertionIndex(type);
+        const basePosition = PositionCalculator.calculatePendingBasePosition(initialTargetIndex, offset);
         console.log(
-            `   Planned pending target index=${tempQueueLength}, base=(${basePosition.x},${basePosition.y})`,
+            `   Planned pending target index=${initialTargetIndex} (by priority), base=(${basePosition.x},${basePosition.y})`,
         );
         const queuePosition = {
             x: basePosition.x + randomOffset.x,
@@ -196,7 +202,7 @@ export class AnimalAnimator {
                 }
                 
                 console.log(`➕ Adding to pending: txHash=${txHash ?? "N/A"}, type=${type}`);
-                // Add to queue
+                // Add to queue at the correct position
                 const queueItem = {
                     sprite: animal,
                     type: type,
@@ -209,7 +215,9 @@ export class AnimalAnimator {
                     timestamp,
                     status,
                 };
-                this.pendingQueue.add(queueItem);
+                // Re-calculate correct insertion index (may have changed during flight)
+                const actualTargetIndex = this.pendingQueue.findInsertionIndex(type);
+                this.pendingQueue.insertAtPosition(queueItem, actualTargetIndex);
                 
                 // Remove temporary click listener and setup permanent one
                 animal.off('pointerdown');
@@ -217,11 +225,10 @@ export class AnimalAnimator {
                     this.onAnimalAdded(queueItem);
                 }
                 
-                // Sort and rearrange
-                this.pendingQueue["sortByPriority"]();
-                this.pendingQueue.arrangeQueue();
+                // Only rearrange animals after the inserted position
+                this.pendingQueue.arrangeQueueFromIndex(actualTargetIndex + 1);
                 console.log(
-                    `📐 Pending rearranged; new length=${this.pendingQueue.getLength()}`,
+                    `📐 Pending rearranged from index ${actualTargetIndex + 1}; new length=${this.pendingQueue.getLength()}`,
                 );
             },
         });

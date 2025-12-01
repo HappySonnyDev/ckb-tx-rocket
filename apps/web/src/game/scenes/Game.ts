@@ -65,6 +65,10 @@ export class Game extends Scene {
     private mainGameAreaRightBound: number = 0;
     private currentBlock: Block | null = null;
     
+    // Transaction counts (actual counts from backend, not queue lengths)
+    private pendingTransactionCount: number = 0;
+    private proposedTransactionCount: number = 0;
+    
     // Confirmed queue (metadata only, no sprites)
     private confirmQueue: AnimalQueueItem[] = [];
 
@@ -457,8 +461,19 @@ export class Game extends Scene {
         this.roadRenderer.renderRoadPath();
         this.roadRenderer.renderRoadGrassBorders();
         this.roadRenderer.renderGate();
+        
+        // Restore gate counts after re-rendering (use stored counts, not queue lengths)
+        this.roadRenderer.setGateCounts(this.pendingTransactionCount, this.proposedTransactionCount);
+        
         this.roadRenderer.renderGrassBottomBorders();
         this.rocketRenderer.renderRocket();
+        
+        // Re-initialize rocket animator with new rocket elements after re-rendering
+        this.rocketAnimator = new RocketAnimator(
+            this,
+            this.rocketRenderer.getRocketElements(),
+        );
+        
         this.buildingRenderer.renderBuildings();
         
         // Re-arrange queues with new offset
@@ -531,6 +546,11 @@ export class Game extends Scene {
      * Updates gate text with queue counts
      */
     public setGateCounts(pending: number, proposed: number): void {
+        // Store the counts internally
+        this.pendingTransactionCount = pending;
+        this.proposedTransactionCount = proposed;
+        
+        // Update the visual display
         this.roadRenderer.setGateCounts(pending, proposed);
     }
 
@@ -745,6 +765,7 @@ export class Game extends Scene {
                 });
                 removedFromPending = true;
                 this.pendingQueueManager.arrangeQueue();
+                
                 console.log(`   ✅ Removed and faded out from pending queue: ${tx.txHash}`);
             }
         }

@@ -89,6 +89,37 @@ export abstract class QueueManager {
     }
     
     /**
+     * Finds the correct insertion index for a new animal based on priority
+     * Returns the index where the animal should be inserted to maintain sorted order
+     */
+    public findInsertionIndex(type: AnimalType): number {
+        const priorityMap: Record<AnimalType, number> = {
+            rabbit: 1,
+            pig: 2,
+            turtle: 3,
+        };
+        
+        const newPriority = priorityMap[type];
+        
+        // Find first position where current animal has higher priority (larger number)
+        for (let i = 0; i < this.queue.length; i++) {
+            if (priorityMap[this.queue[i].type] > newPriority) {
+                return i;
+            }
+        }
+        
+        // If not found, insert at end
+        return this.queue.length;
+    }
+    
+    /**
+     * Inserts an animal at a specific position in the queue
+     */
+    public insertAtPosition(animal: AnimalQueueItem, index: number): void {
+        this.queue.splice(index, 0, animal);
+    }
+    
+    /**
      * Sorts the queue by priority
      */
     protected sortByPriority(): void {

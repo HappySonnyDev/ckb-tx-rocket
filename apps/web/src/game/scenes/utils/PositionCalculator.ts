@@ -8,7 +8,7 @@ import { Position, GAME_CONSTANTS } from "../types/GameTypes";
 export class PositionCalculator {
     /**
      * Calculates the base queue position (without random offset) based on queue index
-     * Uses triangular formation for pending queue
+     * Uses triangular formation for pending queue with max 40 animals per bottom row
      * @param index - Index in the sorted queue
      * @param offsetX - Optional X offset for main game area (default: 0)
      * @returns Base position coordinates
@@ -16,27 +16,39 @@ export class PositionCalculator {
     public static calculatePendingBasePosition(index: number, offsetX: number = 0): Position {
         const baseX = GAME_CONSTANTS.QUEUE_START_X;
         const baseY = GAME_CONSTANTS.QUEUE_BASE_Y;
+        const maxBottomRowWidth = GAME_CONSTANTS.MAX_BOTTOM_ROW_WIDTH;
         
-        // Calculate row number: find which row this animal belongs to
-        // Row 0: 1 animal (index 0)
-        // Row 1: 2 animals (index 1-2)
-        // Row 2: 3 animals (index 3-5)
-        // Row 3: 4 animals (index 6-9)
+        // Calculate total animals in triangle part (before reaching max width)
+        // Sum: 1 + 2 + 3 + ... + maxBottomRowWidth = maxBottomRowWidth * (maxBottomRowWidth + 1) / 2
+        const triangleCapacity = (maxBottomRowWidth * (maxBottomRowWidth + 1)) / 2;
+        
         let row = 0;
-        let countSoFar = 0;
-        while (countSoFar + row + 1 <= index) {
-            countSoFar += row + 1;
-            row++;
-        }
+        let col = 0;
+        let animalsPerRow = 1;
         
-        // Column position within the row
-        const col = index - countSoFar;
+        if (index < triangleCapacity) {
+            // Triangle part: row width increases from 1 to maxBottomRowWidth
+            let countSoFar = 0;
+            row = 0;
+            while (countSoFar + row + 1 <= index) {
+                countSoFar += row + 1;
+                row++;
+            }
+            col = index - countSoFar;
+            animalsPerRow = row + 1;
+        } else {
+            // Rectangle part: all rows have maxBottomRowWidth animals
+            const rectangleIndex = index - triangleCapacity;
+            row = maxBottomRowWidth + Math.floor(rectangleIndex / maxBottomRowWidth);
+            col = rectangleIndex % maxBottomRowWidth;
+            animalsPerRow = maxBottomRowWidth;
+        }
         
         const rowSpacing = GAME_CONSTANTS.PENDING_ROW_SPACING;
         const colSpacing = GAME_CONSTANTS.PENDING_COL_SPACING;
         
-        // Calculate position with triangular offset (centered)
-        const x = offsetX + baseX + col * colSpacing - (row * colSpacing) / 2;
+        // Calculate position with centering based on row width
+        const x = offsetX + baseX + col * colSpacing - ((animalsPerRow - 1) * colSpacing) / 2;
         const y = baseY + row * rowSpacing;
         
         return { x, y };

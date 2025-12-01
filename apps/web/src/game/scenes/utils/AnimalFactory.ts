@@ -72,6 +72,9 @@ export class AnimalFactory {
         animal.setDisplaySize(displaySize, displaySize);
         animal.setOrigin(0.5, 0.5);
         
+        // Set depth to 50 so animals appear above road (0) but below fence (100)
+        animal.setDepth(50);
+        
         // Apply color tint based on transaction type
         if (txType && TX_TYPE_COLORS[txType]) {
             // Convert hex color to Phaser color number

@@ -38,10 +38,13 @@ export interface Position {
  */
 export const GAME_CONSTANTS = {
     // Queue capacity limits
-    MAX_PENDING_CAPACITY: 800,
+    MAX_PENDING_CAPACITY: 3000,
     MAX_PROPOSED_CAPACITY: 44,
     MAX_CONCURRENT_PENDING_ARRIVALS: 8,
     MAX_CONCURRENT_PROPOSED_ARRIVALS: 6,
+    
+    // Pending queue formation
+    MAX_BOTTOM_ROW_WIDTH: 40, // Maximum animals per row at bottom of triangle
     
     // Timing
     ARRIVAL_RETRY_DELAY_MS: 250,

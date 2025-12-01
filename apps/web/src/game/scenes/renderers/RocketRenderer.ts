@@ -50,6 +50,24 @@ export class RocketRenderer {
         const kingKey = networkConfig.getResourceName('king');
         const rocketCloseKey = networkConfig.getResourceName('rocket_close');
         
+        // Stop all tweens on old objects before destroying them
+        if (this.rocket) {
+            this.scene.tweens.killTweensOf(this.rocket);
+            this.rocket.destroy();
+        }
+        if (this.rocketCloseDoor) {
+            this.scene.tweens.killTweensOf(this.rocketCloseDoor);
+            this.rocketCloseDoor.destroy();
+        }
+        if (this.fire) {
+            this.scene.tweens.killTweensOf(this.fire);
+            this.fire.destroy();
+        }
+        if (this.platform) {
+            this.scene.tweens.killTweensOf(this.platform);
+            this.platform.destroy();
+        }
+        
         // Tizi (base platform)
         if (this.tizi) this.tizi.destroy();
         this.tizi = this.scene.add.image(offset + 0, grassBottomEdge, tiziKey);
@@ -57,7 +75,6 @@ export class RocketRenderer {
         this.tizi.setOrigin(0, 1);
         
         // Platform
-        if (this.platform) this.platform.destroy();
         this.platform = this.scene.add.image(
             offset + 94,
             grassBottomEdge,
@@ -67,7 +84,6 @@ export class RocketRenderer {
         this.platform.setOrigin(0, 1);
         
         // Rocket (open door)
-        if (this.rocket) this.rocket.destroy();
         this.rocket = this.scene.add.image(offset + 153, rocketY, rocketKey);
         this.rocket.setDisplaySize(116, 332);
         this.rocket.setOrigin(0, 1);
@@ -97,7 +113,6 @@ export class RocketRenderer {
         this.king.setOrigin(0, 1);
         
         // Rocket close door (initially hidden)
-        if (this.rocketCloseDoor) this.rocketCloseDoor.destroy();
         this.rocketCloseDoor = this.scene.add.image(
             offset + 153,
             rocketY,
@@ -108,7 +123,6 @@ export class RocketRenderer {
         this.rocketCloseDoor.setVisible(false);
         
         // Fire (initially hidden)
-        if (this.fire) this.fire.destroy();
         this.fire = this.scene.add.image(offset + 153 + 58, rocketY - 30, "fire");
         this.fire.setDisplaySize(78, 94);
         this.fire.setOrigin(0.5, 0);

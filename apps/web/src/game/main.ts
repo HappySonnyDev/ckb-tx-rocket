@@ -9,7 +9,7 @@ const config: Types.Core.GameConfig = {
     type: AUTO,
     parent: "game-container",
     width: 1440,
-    height: 1024,
+    height: 3069,
     backgroundColor: "#1a1a2e",
     scale: {
         mode: Phaser.Scale.RESIZE,
@@ -19,6 +19,11 @@ const config: Types.Core.GameConfig = {
     // Enable DOM plugin for HTML element support
     dom: {
         createContainer: true,
+    },
+     input: {
+        mouse: {
+            preventDefaultWheel: false,
+        },
     },
     scene: [MainGame, ChainVisualizationScene],
 };

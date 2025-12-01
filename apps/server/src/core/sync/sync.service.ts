@@ -30,9 +30,9 @@ export class SyncService implements OnModuleInit {
     this.logger.log('SyncService initialized. Subscribing to CKB events...');
     await Promise.all([
       this.subscribeToNewTipBlock(),
-      // this.subscribeToNewTransaction(),
+      this.subscribeToNewTransaction(),
       this.subscribeToProposedTransaction(),
-      // this.subscribeToRejectedTransaction(),
+      this.subscribeToRejectedTransaction(),
     ]);
   }
 

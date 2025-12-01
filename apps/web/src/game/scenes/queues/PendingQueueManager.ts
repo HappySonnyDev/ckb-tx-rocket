@@ -87,6 +87,15 @@ export class PendingQueueManager extends QueueManager {
      * @param skipAnimation - If true, directly set positions without animation
      */
     public arrangeQueue(skipAnimation: boolean = false): void {
+        this.arrangeQueueFromIndex(0, skipAnimation);
+    }
+    
+    /**
+     * Arranges animals in triangular formation starting from a specific index
+     * @param startIndex - Index to start rearranging from
+     * @param skipAnimation - If true, directly set positions without animation
+     */
+    public arrangeQueueFromIndex(startIndex: number, skipAnimation: boolean = false): void {
         // Save old positions before rearranging
         const oldPositions = new Map<
             Phaser.GameObjects.Image,
@@ -98,10 +107,11 @@ export class PendingQueueManager extends QueueManager {
         
         const offset = this.getOffset();
         
-        // Arrange all animals in a single triangular formation
-        this.queue.forEach((animal, index) => {
+        // Arrange animals starting from startIndex in a single triangular formation
+        for (let i = startIndex; i < this.queue.length; i++) {
+            const animal = this.queue[i];
             // Calculate base position using the index
-            const basePosition = PositionCalculator.calculatePendingBasePosition(index, offset);
+            const basePosition = PositionCalculator.calculatePendingBasePosition(i, offset);
             
             // Apply the animal's fixed random offset
             const targetX = basePosition.x + animal.randomOffset.x;
@@ -133,6 +143,6 @@ export class PendingQueueManager extends QueueManager {
             
             // Update stored position
             animal.queuePosition = { x: targetX, y: targetY };
-        });
+        }
     }
 }

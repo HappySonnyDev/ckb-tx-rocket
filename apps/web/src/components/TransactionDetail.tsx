@@ -127,44 +127,63 @@ export function TransactionDetail({
     const VERTICAL_GAP = -10; // 弹框与动物边缘的垂直间隙
     const SCREEN_PADDING = 20; // 屏幕边缘留白
 
+    // 获取画布元素的位置
+    const gameCanvas = document.querySelector('#game-container canvas') as HTMLCanvasElement;
+    const canvasRect = gameCanvas?.getBoundingClientRect();
+    
+    // 获取页面滚动偏移量
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+    
+    // 将游戏坐标转换为文档坐标（absolute定位基于文档）
+    // canvasRect 给出的是视口坐标，需要加上滚动偏移才能得到文档坐标
+    const documentX = canvasRect ? x + canvasRect.left + scrollLeft : x;
+    const documentY = canvasRect ? y + canvasRect.top + scrollTop : y;
+
     // 默认在动物右边显示
-    let popupX = x + POPUP_OFFSET;
-    let popupY = y; // 默认与动物垂直对齐
+    let popupX = documentX + POPUP_OFFSET;
+    let popupY = documentY; // 默认与动物垂直对齐
 
     // ========== 水平方向边界检测 ==========
-    // 检查右边是否有足够空间
-    if (popupX + POPUP_WIDTH + SCREEN_PADDING > screenWidth) {
+    // 使用视口宽度来判断边界（需要减去滚动偏移）
+    const viewportWidth = window.innerWidth;
+    
+    // 检查右边是否有足够空间（popupX是文档坐标，需要转换为视口坐标来判断）
+    if (popupX - scrollLeft + POPUP_WIDTH + SCREEN_PADDING > viewportWidth) {
         // 右边空间不够,显示在左边
-        popupX = x - POPUP_WIDTH - POPUP_OFFSET;
+        popupX = documentX - POPUP_WIDTH - POPUP_OFFSET;
 
         // 如果左边也没有足够空间,则靠右对齐
-        if (popupX < SCREEN_PADDING) {
-            popupX = screenWidth - POPUP_WIDTH - SCREEN_PADDING;
+        if (popupX - scrollLeft < SCREEN_PADDING) {
+            popupX = scrollLeft + viewportWidth - POPUP_WIDTH - SCREEN_PADDING;
         }
     }
 
     // 确保不超出左边界
-    if (popupX < SCREEN_PADDING) {
-        popupX = SCREEN_PADDING;
+    if (popupX - scrollLeft < SCREEN_PADDING) {
+        popupX = scrollLeft + SCREEN_PADDING;
     }
 
     // ========== 垂直方向边界检测 ==========
-    // 优先在动物上方显示(y是动物中心,这里简化为直接在上方一点)
-    popupY = y - POPUP_HEIGHT - VERTICAL_GAP;
+    // 使用视口高度来判断边界（需要减去滚动偏移）
+    const viewportHeight = window.innerHeight;
+    
+    // 优先在动物上方显示
+    popupY = documentY - POPUP_HEIGHT - VERTICAL_GAP;
 
     // 如果上方空间不够,则在动物下方显示
-    if (popupY < SCREEN_PADDING) {
-        popupY = y + VERTICAL_GAP;
+    if (popupY - scrollTop < SCREEN_PADDING) {
+        popupY = documentY + VERTICAL_GAP;
     }
 
     // 如果下方也超出边界,则尽量靠近动物同时保证不超出屏幕
-    if (popupY + POPUP_HEIGHT + SCREEN_PADDING > screenHeight) {
+    if (popupY - scrollTop + POPUP_HEIGHT + SCREEN_PADDING > viewportHeight) {
         // 尝试向上调整,但保持与动物有一定距离
         popupY = Math.max(
-            SCREEN_PADDING, // 不能超出上边界
+            scrollTop + SCREEN_PADDING, // 不能超出上边界
             Math.min(
-                y - POPUP_HEIGHT - VERTICAL_GAP, // 优先在动物上方
-                screenHeight - POPUP_HEIGHT - SCREEN_PADDING, // 不能超出下边界
+                documentY - POPUP_HEIGHT - VERTICAL_GAP, // 优先在动物上方
+                scrollTop + viewportHeight - POPUP_HEIGHT - SCREEN_PADDING, // 不能超出下边界
             ),
         );
     }
